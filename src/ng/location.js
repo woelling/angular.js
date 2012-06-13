@@ -1,8 +1,7 @@
 'use strict';
 
-var URL_MATCH = /^([^:]+):\/\/(\w+:{0,1}\w*@)?([\w\.-]*)(:([0-9]+))?(\/[^\?#]*)?(\?([^#]*))?(#(.*))?$/,
-    PATH_MATCH = /^([^\?#]*)?(\?([^#]*))?(#(.*))?$/,
-    HASH_MATCH = PATH_MATCH,
+var SERVER_MATCH = /^([^:]+):\/\/(\w+:{0,1}\w*@)?([\w\.-]*)(:([0-9]+))?/,
+    PATH_MATCH = /^([^\?#]*)(\?([^#]*))?(#(.*))?$/,
     DEFAULT_PORTS = {'http': 80, 'https': 443, 'ftp': 21};
 
 
@@ -23,26 +22,23 @@ function encodePath(path) {
   return segments.join('/');
 }
 
-
 function matchUrl(url, obj) {
-  var match = URL_MATCH.exec(url);
+  var match = SERVER_MATCH.exec(url);
 
-  match = {
-      protocol: match[1],
-      host: match[3],
-      port: int(match[5]) || DEFAULT_PORTS[match[1]] || null,
-      path: match[6] || '/',
-      search: match[8],
-      hash: match[10]
-    };
+  obj.$$protocol = match[1];
+  obj.$$host = match[3];
+  obj.$$port = int(match[5]) || DEFAULT_PORTS[match[1]] || null;
+}
 
-  if (obj) {
-    obj.$$protocol = match.protocol;
-    obj.$$host = match.host;
-    obj.$$port = match.port;
-  }
+function matchAppUrl(url, obj) {
+  var match = PATH_MATCH.exec(url);
 
-  return match;
+  obj.$$path = decodeURIComponent(match[1]);
+  obj.$$search = parseKeyValue(match[3]);
+  obj.$$hash = decodeURIComponent(match[5] || '');
+
+  // make sure path starts with '/';
+  if (obj.$$path && obj.$$path.charAt(0) != '/') obj.$$path = '/' + obj.$$path;
 }
 
 
@@ -50,76 +46,48 @@ function composeProtocolHostPort(protocol, host, port) {
   return protocol + '://' + host + (port == DEFAULT_PORTS[protocol] ? '' : ':' + port);
 }
 
-
-function pathPrefixFromBase(basePath) {
-  return basePath.substr(0, basePath.lastIndexOf('/'));
+function beginsWith(begin, whole, otherwise) {
+  return whole.indexOf(begin) == 0 ? whole.substr(begin.length) : otherwise;
 }
 
 
-function convertToHtml5Url(url, basePath, hashPrefix) {
-  var match = matchUrl(url);
-
-  // already html5 url
-  if (decodeURIComponent(match.path) != basePath || isUndefined(match.hash) ||
-      match.hash.indexOf(hashPrefix) !== 0) {
-    return url;
-  // convert hashbang url -> html5 url
-  } else {
-    return composeProtocolHostPort(match.protocol, match.host, match.port) +
-           pathPrefixFromBase(basePath) + match.hash.substr(hashPrefix.length);
-  }
+function stripHash(url) {
+  var index = url.indexOf('#');
+  return index == -1 ? url : url.substr(0, index);
 }
 
 
-function convertToHashbangUrl(url, basePath, hashPrefix) {
-  var match = matchUrl(url);
+function stripFile(url) {
+  return url.substr(0, stripHash(url).lastIndexOf('/') + 1);
+}
 
-  // already hashbang url
-  if (decodeURIComponent(match.path) == basePath) {
-    return url;
-  // convert html5 url -> hashbang url
-  } else {
-    var search = match.search && '?' + match.search || '',
-        hash = match.hash && '#' + match.hash || '',
-        pathPrefix = pathPrefixFromBase(basePath),
-        path = match.path.substr(pathPrefix.length);
-
-    if (match.path.indexOf(pathPrefix) !== 0) {
-      throw Error('Invalid url "' + url + '", missing path prefix "' + pathPrefix + '" !');
-    }
-
-    return composeProtocolHostPort(match.protocol, match.host, match.port) + basePath +
-           '#' + hashPrefix + path + search + hash;
-  }
+/* return the server only */
+function serverBase(url) {
+  return url.substring(0, url.indexOf('/', url.indexOf('//') + 2));
 }
 
 
 /**
- * LocationUrl represents an url
+ * LocationHtml5Url represents an url
  * This object is exposed as $location service when HTML5 mode is enabled and supported
  *
  * @constructor
- * @param {string} url HTML5 url
- * @param {string} pathPrefix
+ * @param {string} appBase application base URL
+ * @param {string} hashPrefix hasbang prefix
  */
-function LocationUrl(url, pathPrefix) {
-  pathPrefix = pathPrefix || '';
-
+function LocationHtml5Url(appBase, hashPrefix) {
+  var appBaseNoFile = stripFile(appBase);
   /**
    * Parse given html5 (regular) url string into properties
    * @param {string} url HTML5 url
    * @private
    */
   this.$$parse = function(url) {
-    var match = matchUrl(url, this);
-
-    if (match.path.indexOf(pathPrefix) !== 0) {
-      throw Error('Invalid url "' + url + '", missing path prefix "' + pathPrefix + '" !');
+    matchUrl(url, this);
+    matchAppUrl(url.substr(appBaseNoFile.length), this);
+    if (!this.$$path) {
+      this.$$path = '/';
     }
-
-    this.$$path = decodeURIComponent(match.path.substr(pathPrefix.length));
-    this.$$search = parseKeyValue(match.search);
-    this.$$hash = match.hash && decodeURIComponent(match.hash) || '';
 
     this.$$compose();
   };
@@ -133,11 +101,24 @@ function LocationUrl(url, pathPrefix) {
         hash = this.$$hash ? '#' + encodeUriSegment(this.$$hash) : '';
 
     this.$$url = encodePath(this.$$path) + (search ? '?' + search : '') + hash;
-    this.$$absUrl = composeProtocolHostPort(this.$$protocol, this.$$host, this.$$port) +
-                    pathPrefix + this.$$url;
+    this.$$absUrl = appBaseNoFile + this.$$url.substr(1); // first char is always '/'
   };
 
-  this.$$parse(url);
+  this.$$rewrite = function(url) {
+    var appUrl;
+
+    if ( (appUrl = beginsWith(appBase, url)) !== undefined ) {
+      if ( (appUrl = beginsWith(hashPrefix, appUrl)) !== undefined ) {
+        return appBaseNoFile + (beginsWith('/', appUrl) || appUrl);
+      } else {
+        return appBase;
+      }
+    } else if ( (appUrl = beginsWith(appBaseNoFile, url)) ) {
+      return appBaseNoFile + appUrl;
+    } else if (appBaseNoFile == url + '/') {
+      return appBaseNoFile;
+    }
+  }
 }
 
 
@@ -146,11 +127,11 @@ function LocationUrl(url, pathPrefix) {
  * This object is exposed as $location service when html5 history api is disabled or not supported
  *
  * @constructor
- * @param {string} url Legacy url
- * @param {string} hashPrefix Prefix for hash part (containing path and search)
+ * @param {string} appBase application base URL
+ * @param {string} hashPrefix hasbang prefix
  */
-function LocationHashbangUrl(url, hashPrefix) {
-  var basePath;
+function LocationHashbangUrl(appBase, hashPrefix) {
+  var appBaseNoFile = stripFile(appBase);
 
   /**
    * Parse given hashbang url into properties
@@ -158,24 +139,10 @@ function LocationHashbangUrl(url, hashPrefix) {
    * @private
    */
   this.$$parse = function(url) {
-    var match = matchUrl(url, this);
-
-
-    if (match.hash && match.hash.indexOf(hashPrefix) !== 0) {
-      throw Error('Invalid url "' + url + '", missing hash prefix "' + hashPrefix + '" !');
-    }
-
-    basePath = match.path + (match.search ? '?' + match.search : '');
-    match = HASH_MATCH.exec((match.hash || '').substr(hashPrefix.length));
-    if (match[1]) {
-      this.$$path = (match[1].charAt(0) == '/' ? '' : '/') + decodeURIComponent(match[1]);
-    } else {
-      this.$$path = '';
-    }
-
-    this.$$search = parseKeyValue(match[3]);
-    this.$$hash = match[5] && decodeURIComponent(match[5]) || '';
-
+    matchUrl(url, this);
+    url = beginsWith(appBase, url) || beginsWith(appBaseNoFile, url);
+    url = beginsWith(hashPrefix, url, url);
+    matchAppUrl(url, this);
     this.$$compose();
   };
 
@@ -188,15 +155,48 @@ function LocationHashbangUrl(url, hashPrefix) {
         hash = this.$$hash ? '#' + encodeUriSegment(this.$$hash) : '';
 
     this.$$url = encodePath(this.$$path) + (search ? '?' + search : '') + hash;
-    this.$$absUrl = composeProtocolHostPort(this.$$protocol, this.$$host, this.$$port) +
-                    basePath + (this.$$url ? '#' + hashPrefix + this.$$url : '');
+    this.$$absUrl = appBase + (this.$$url ? hashPrefix + this.$$url : '');
   };
 
-  this.$$parse(url);
+  this.$$rewrite = function(url) {
+    if(stripHash(appBase) == stripHash(url)) {
+      return url;
+    }
+  }
 }
 
 
-LocationUrl.prototype = {
+/**
+ * LocationHashbangUrl represents url
+ * This object is exposed as $location service when html5 history api is enabled but the browser
+ * does not support it.
+ *
+ * @constructor
+ * @param {string} appBase application base URL
+ * @param {string} hashPrefix hasbang prefix
+ */
+function LocationHashbangInHtml5Url(appBase, hashPrefix) {
+  LocationHashbangUrl.apply(this, arguments);
+
+  var appBaseNoFile = stripFile(appBase);
+
+  this.$$rewrite = function(url) {
+    var appUrl;
+
+    if ( appBase == stripHash(url) ) {
+      return url;
+    } else if ( (appUrl = beginsWith(appBaseNoFile, url)) ) {
+      return appBase + hashPrefix + appUrl;
+    } else if ( appBaseNoFile === url + '/') {
+      return appBaseNoFile;
+    }
+  }
+}
+
+
+LocationHashbangInHtml5Url.prototype =
+  LocationHashbangUrl.prototype =
+  LocationHtml5Url.prototype = {
 
   /**
    * Has any change been replacing ?
@@ -378,8 +378,6 @@ LocationUrl.prototype = {
   }
 };
 
-LocationHashbangUrl.prototype = inherit(LocationUrl.prototype);
-
 function locationGetter(property) {
   return function() {
     return this[property];
@@ -476,30 +474,20 @@ function $LocationProvider(){
   this.$get = ['$rootScope', '$browser', '$sniffer', '$rootElement',
       function( $rootScope,   $browser,   $sniffer,   $rootElement) {
     var $location,
-        basePath,
-        pathPrefix,
-        initUrl = $browser.url(),
-        absUrlPrefix;
+        LocationMode,
+        baseHref = $browser.baseHref(),
+        initialUrl = $browser.url(),
+        appBase;
 
     if (html5Mode) {
-      basePath = $browser.baseHref() || '/';
-      pathPrefix = pathPrefixFromBase(basePath);
-      if ($sniffer.history) {
-        $location = new LocationUrl(
-          convertToHtml5Url(initUrl, basePath, hashPrefix),
-          pathPrefix);
-      } else {
-        $location = new LocationHashbangUrl(
-          convertToHashbangUrl(initUrl, basePath, hashPrefix),
-          hashPrefix);
-      }
-      // link rewriting
-      absUrlPrefix = composeProtocolHostPort(
-        $location.protocol(), $location.host(), $location.port()) + pathPrefix;
+      appBase = baseHref ? serverBase(initialUrl) + baseHref : initialUrl;
+      LocationMode = $sniffer.history ? LocationHtml5Url : LocationHashbangInHtml5Url;
     } else {
-      $location = new LocationHashbangUrl(initUrl, hashPrefix);
-      absUrlPrefix = $location.absUrl().split('#')[0];
+      appBase = stripHash(initialUrl);
+      LocationMode = LocationHashbangUrl;
     }
+    $location = new LocationMode(appBase, '#' + hashPrefix);
+    $location.$$parse($location.$$rewrite(initialUrl));
 
     $rootElement.bind('click', function(event) {
       // TODO(vojta): rewrite link when opening in new tab/window (in legacy browser)
@@ -515,27 +503,21 @@ function $LocationProvider(){
       }
 
       var absHref = elm.prop('href'),
-          href;
+          rewrittenUrl = $location.$$rewrite(absHref);
 
-      if (!absHref ||
-        elm.attr('target') ||
-        absHref.indexOf(absUrlPrefix) !== 0) { // link to different domain or base path
-        return;
+      if (absHref && !elm.attr('target') && rewrittenUrl) {
+        // update location manually
+        $location.$$parse(rewrittenUrl);
+        $rootScope.$apply();
+        event.preventDefault();
+        // hack to work around FF6 bug 684208 when scenario runner clicks on links
+        window.angular['ff-684208-preventDefault'] = true;
       }
-
-      // update location with href without the prefix
-      href = absHref.substr(absUrlPrefix.length);
-      if (href.indexOf('#' + hashPrefix) == 0) href = href.substr(hashPrefix.length + 1);
-      $location.url(href);
-      $rootScope.$apply();
-      event.preventDefault();
-      // hack to work around FF6 bug 684208 when scenario runner clicks on links
-      window.angular['ff-684208-preventDefault'] = true;
     });
 
 
     // rewrite hashbang url <> html5 url
-    if ($location.absUrl() != initUrl) {
+    if ($location.absUrl() != initialUrl) {
       $browser.url($location.absUrl(), true);
     }
 

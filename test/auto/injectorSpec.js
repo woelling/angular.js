@@ -263,7 +263,7 @@ describe('injector', function() {
 
 
     it('should run symbolic modules', function() {
-      angularModule('myModule', []).value('a', 'abc');
+      angular.module('myModule', []).value('a', 'abc');
       var $injector = createInjector(['myModule']);
       expect($injector.get('a')).toEqual('abc');
     });
@@ -558,7 +558,7 @@ describe('injector', function() {
         angular.module('TestModule', [], function(xyzzy) {});
         expect(function() {
           createInjector(['TestModule']);
-        }).toThrow('Unknown service: xyzzy from TestModule');
+        }).toThrow('Unknown service: xyzzy from module \'TestModule\'');
       });
 
 

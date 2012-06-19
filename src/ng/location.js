@@ -1,5 +1,12 @@
 'use strict';
 
+goog.require('angular.coreModule');
+
+goog.provide('angular.core.$location');
+
+angular.coreModule.provider('$location', $LocationProvider);
+
+
 var URL_MATCH = /^([^:]+):\/\/(\w+:{0,1}\w*@)?([\w\.-]*)(:([0-9]+))?(\/[^\?#]*)?(\?([^#]*))?(#(.*))?$/,
     PATH_MATCH = /^([^\?#]*)?(\?([^#]*))?(#(.*))?$/,
     HASH_MATCH = PATH_MATCH,
@@ -34,7 +41,7 @@ function matchUrl(url, obj) {
   match = {
       protocol: match[1],
       host: match[3],
-      port: int(match[5]) || DEFAULT_PORTS[match[1]] || null,
+      port: integer(match[5]) || DEFAULT_PORTS[match[1]] || null,
       path: match[6] || '/',
       search: match[8],
       hash: match[10]

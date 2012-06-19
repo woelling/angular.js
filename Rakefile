@@ -66,6 +66,7 @@ task :concat => :init do
         'src/angular.suffix',
       ], gen_css('css/angular.css', true))
 
+
   FileUtils.cp_r 'src/ngLocale', path_to('i18n')
 
   concat_file('angular-loader.js', [
@@ -117,6 +118,38 @@ task :version => [:init] do
   `echo #{NG_VERSION.full} > #{path_to('version.txt')}`
 end
 
+
+desc 'Compile JavaScript'
+task :dte => [:init] do
+  concat_file('angular-dte.js', [
+        'src/ngExp/angular.prefix',
+        'src/Angular.js',
+        'src/apis.js',
+        'src/ng/rootScope.js',
+        'src/ng/exceptionHandler.js',
+        'src/ng/window.js',
+        'src/ng/log.js',
+        'src/ng/parse.js',
+        'src/ng/interpolate.js',
+        'src/loader.js',
+        'src/auto/injector.js',
+        'src/ngExp/dte-bootstrap.js',
+        'src/ngExp/dte.js',
+        'src/ngExp/template.js',
+        'src/ngExp/block.js',
+        'src/ngExp/Anchor.js',
+        'src/ngExp/compiler.js',
+        'src/ngExp/directives.js',
+        'src/ngExp/angular.suffix'
+      ]);
+
+  concat_file('angular-dte-directive.js', [
+        'src/ngExp/directives.js'
+      ]);
+
+  closure_compile('angular-dte.js')
+  closure_compile('angular-dte-directive.js')
+end
 
 desc 'Generate docs'
 task :docs => [:init] do
@@ -299,7 +332,7 @@ def concat_file(filename, deps, footer='')
               gsub('"NG_VERSION_MINOR"', NG_VERSION.minor).
               gsub('"NG_VERSION_DOT"', NG_VERSION.dot).
               gsub('"NG_VERSION_CODENAME"', NG_VERSION.codename).
-              gsub(/^\s*['"]use strict['"];?\s*$/, ''). # remove all file-specific strict mode flags
+              gsub(/['"]use strict['"];?/, ''). # remove all file-specific strict mode flags
               sub(/\(function\([^)]*\)\s*\{/, "\\0\n'use strict';") # add single strict mode flag
 
     f.write(content)

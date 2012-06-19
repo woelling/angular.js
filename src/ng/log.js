@@ -1,9 +1,17 @@
 'use strict';
 
+goog.require('angular.coreModule');
+goog.require('angular.core.$window');
+
+goog.provide('angular.core.$log');
+
+angular.coreModule.provider('$log', $LogProvider);
+
 /**
  * @ngdoc object
  * @name ng.$log
  * @requires $window
+ * @constructor
  *
  * @description
  * Simple service for logging. Default implementation writes the message
@@ -84,7 +92,7 @@ function $LogProvider(){
               ? 'Error: ' + arg.message + '\n' + arg.stack
               : arg.stack;
         } else if (arg.sourceURL) {
-          arg = arg.message + '\n' + arg.sourceURL + ':' + arg.line;
+          arg = arg.message + '\n' + arg.sourceURL + ':' + arg['line'];
         }
       }
       return arg;

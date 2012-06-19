@@ -1,8 +1,12 @@
 'use strict';
 
+goog.require('angular.coreModule');
+
+goog.provide('angular.core.$window');
 /**
  * @ngdoc object
  * @name ng.$window
+ * @constructor
  *
  * @description
  * A reference to the browser's `window` object. While `window`
@@ -23,6 +27,4 @@
      </doc:scenario>
    </doc:example>
  */
-function $WindowProvider(){
-  this.$get = valueFn(window);
-}
+angular.coreModule.value('$window', window);

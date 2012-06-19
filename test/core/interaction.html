@@ -1,0 +1,110 @@
+<html>
+<head>
+  <script src="../../build/c-angular.min.js"></script>
+  <script>
+    angular.module('hello', ['core']).
+      factory('$parse', function() {
+        var FNS = {
+          'selected.name': function(s) {
+            return s.selected.name;
+          },
+          'selected.img': function(s) {
+            return s.selected.img;
+          },
+          '$parent.selected = sports[$index]': function(s) {
+            return s.$parent.selected = s.sports[s.$index];
+          },
+          'sport': {assign: function(s, v) {s.sport = v;}},
+          'sports': function(s) { return s.sports; }
+        };
+        return function(name) {
+          return FNS[name] || noop;
+        };
+      }).
+      run(function($template, $rootScope) {
+        var liRowTemplate = $template('.row0', [
+          ['.chevron', ['[mouseOver]', '$parent.selected = sports[$index]']]
+        ]);
+        var masterTemplate = $template('.', [
+            ['.rows',     ['[repeat]', 'sport in sports', liRowTemplate]],
+            ['.title',    ['[bind]', 'selected.name']],
+            ['.img',      ['[bindAttr]', 'src: selected.img']]
+          ]
+        );
+
+        var masterBlock = masterTemplate('.', [
+            [liRowTemplate, 3]
+          ]);
+
+
+          $rootScope.sports = [
+            {name: 'Fencing', img: 'http://www.google.com/logos/2012/fencing-2012-hp.jpg'},
+            {name: 'Diving', img: 'http://www.google.com/logos/2012/olympics-diving-2012-hp.jpg'},
+            {name: 'Archery', img: 'http://www.google.com/logos/2012/olympics-archery-2012-hp.jpg'}
+          ];
+          $rootScope.selected = $rootScope.sports[0];
+
+          masterBlock.attach($rootScope);
+          $rootScope.$apply();
+        });
+  </script>
+  <style>
+    .sidebar {
+      position: absolute;
+      top: 10px;
+      left: 400px;
+      width: 250px;
+      border: 1px solid black;
+      padding: 5px;
+    }
+
+    .sidebar .img {
+      width: 240px;
+      height: 94px;
+      border: 1px solid gray;
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: .5em;
+      width: 380px;
+    }
+
+    ul > li {
+      padding: 1em .5em;
+    }
+
+    ul > li > a {
+      float: right;
+    }
+
+    li.selected {
+      background-color: #d3d3d3;
+    }
+  </style>
+</head>
+<body>
+  <ul class="rows">
+    <li class="selected row0">
+      Fencing
+      <a href class="chevron">&raquo;</a>
+    </li>
+    <li class="row1">
+      Diving
+      <a href class="chevron">&raquo;</a>
+    </li>
+    <li class="row2">
+      Archery
+      <a href class="chevron">&raquo;</a>
+    </li>
+  </ul>
+  <div class="sidebar">
+    <span class="title">Fencing</span>
+    <img class="img" src="http://www.google.com/logos/2012/fencing-2012-hp.jpg">
+  </div>
+</body>
+<script>
+  angular.injector(['hello']);
+</script>
+</html>

@@ -1,5 +1,9 @@
 'use strict';
 
+goog.require('angular.coreModule');
+
+goog.provide('angular.core.$parse');
+
 var OPERATORS = {
     'null':function(){return null;},
     'true':function(){return true;},
@@ -113,6 +117,11 @@ function lex(text, csp){
     return ch == '-' || ch == '+' || isNumber(ch);
   }
 
+  /**
+   * @param {string} error
+   * @param {number=} start
+   * @param {number=} end
+   */
   function throwError(error, start, end) {
     end = end || index;
     throw Error("Lexer Error: " + error + " at column" +
@@ -298,6 +307,10 @@ function parser(text, json, $filter, csp){
   return value;
 
   ///////////////////////////////////
+  /**
+   * @param {string} msg
+   * @param {Object=} token
+   */
   function throwError(msg, token) {
     throw Error("Syntax Error: Token '" + token.text +
       "' " + msg + " at column " +
@@ -311,6 +324,12 @@ function parser(text, json, $filter, csp){
     return tokens[0];
   }
 
+  /**
+   * @param {string=} e1
+   * @param {string=} e2
+   * @param {string=} e3
+   * @param {string=} e4
+   */
   function peek(e1, e2, e3, e4) {
     if (tokens.length > 0) {
       var token = tokens[0];
@@ -323,6 +342,12 @@ function parser(text, json, $filter, csp){
     return false;
   }
 
+  /**
+   * @param {string=} e1
+   * @param {string=} e2
+   * @param {string=} e3
+   * @param {string=} e4
+   */
   function expect(e1, e2, e3, e4){
     var token = peek(e1, e2, e3, e4);
     if (token) {
@@ -668,7 +693,7 @@ function setter(obj, path, setValue) {
  * Return the value accesible from the object by path. Any undefined traversals are ignored
  * @param {Object} obj starting object
  * @param {string} path path to traverse
- * @param {boolean=true} bindFnToScope
+ * @param {boolean=} bindFnToScope
  * @returns value as accesbile by path
  */
 //TODO(misko): this function needs to be removed
@@ -819,6 +844,7 @@ function getterFn(path, csp) {
  * @ngdoc function
  * @name ng.$parse
  * @function
+ * @constructor
  *
  * @description
  *
@@ -837,8 +863,9 @@ function getterFn(path, csp) {
  * </pre>
  *
  *
- * @param {string} expression String expression to compile.
- * @returns {function(context, locals)} a function which represents the compiled expression:
+ * TODO(vojta): move these params to service (not provider)
+ * @serviceParam {string} expression String expression to compile.
+ * @returns {function(Object, Object)} a function which represents the compiled expression:
  *
  *    * `context`: an object against which any expressions embedded in the strings are evaluated
  *      against (Topically a scope object).
@@ -848,7 +875,7 @@ function getterFn(path, csp) {
  *    allows one to set values to expressions.
  *
  */
-function $ParseProvider() {
+angular.coreModule.provider('$parse', function $ParseProvider() {
   var cache = {};
   this.$get = ['$filter', '$sniffer', function($filter, $sniffer) {
     return function(exp) {
@@ -856,7 +883,7 @@ function $ParseProvider() {
         case 'string':
           return cache.hasOwnProperty(exp)
             ? cache[exp]
-            : cache[exp] =  parser(exp, false, $filter, $sniffer.csp);
+            : cache[exp] =  parser(exp, false, $filter, $sniffer['csp']);
         case 'function':
           return exp;
         default:
@@ -864,4 +891,4 @@ function $ParseProvider() {
       }
     };
   }];
-}
+});

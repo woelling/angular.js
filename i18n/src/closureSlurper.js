@@ -8,8 +8,8 @@ var Q  = require('qq'),
     localeInfo = {},
     localeIds = [],
     currencySymbols,
-    goog = { provide: function() {},
-             require: function() {},
+    goog = { provide: function(name) {},
+             require: function(name) {},
              i18n: {currency: {}, pluralRules: {}} };
 
 createFolder('../../src/ngLocale/').then(function() {

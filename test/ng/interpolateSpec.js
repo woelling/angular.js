@@ -1,6 +1,6 @@
 'use strict';
 
-describe('$interpolate', function() {
+xdescribe('$interpolate', function() {
 
   it('should return a function when there are no bindings and textOnly is undefined',
       inject(function($interpolate) {

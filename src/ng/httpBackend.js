@@ -1,3 +1,14 @@
+'use strict';
+
+goog.require('angular.coreModule');
+goog.require('angular.core.$window');
+goog.require('angular.core.$browser');
+
+goog.provide('angular.core.$httpBackend');
+
+angular.coreModule.provider('$httpBackend', $HttpBackendProvider);
+
+
 var XHR = window.XMLHttpRequest || function() {
   try { return new ActiveXObject("Msxml2.XMLHTTP.6.0"); } catch (e1) {}
   try { return new ActiveXObject("Msxml2.XMLHTTP.3.0"); } catch (e2) {}

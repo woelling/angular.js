@@ -9,8 +9,9 @@
 _jQuery.event.special.change = undefined;
 
 bindJQuery();
+var recursionDepth;
 beforeEach(function() {
-  publishExternalAPI(angular);
+  recursionDepth = 0;
 
   // workaround for IE bug https://plus.google.com/104744871076396904202/posts/Kqjuj6RSbbT
   // IE overwrite window.jQuery with undefined because of empty jQuery var statement, so we have to
@@ -28,6 +29,8 @@ beforeEach(function() {
 });
 
 afterEach(function() {
+  expect(EMPTY_ARRAY).toEqual([]);
+  expect(EMPTY_MAP).toEqual({});
   if (this.$injector) {
     var $rootScope = this.$injector.get('$rootScope');
     var $log = this.$injector.get('$log');
@@ -59,6 +62,13 @@ afterEach(function() {
     throw new Error('Found jqCache references that were not deallocated! count: ' + count);
   }
 });
+
+function PREVENT_RECURSION(depth) {
+  if (recursionDepth++ > depth) {
+    debugger;
+    throw Error('RECURSION DETECTED').stack;
+  }
+}
 
 
 function dealoc(obj) {

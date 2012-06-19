@@ -1,7 +1,10 @@
 'use strict';
 
+goog.require('angular.coreModule');
 
-function $TimeoutProvider() {
+goog.provide('angular.core.$timeout');
+
+angular.coreModule.provider('$timeout', function $TimeoutProvider() {
   this.$get = ['$rootScope', '$browser', '$q', '$exceptionHandler',
        function($rootScope,   $browser,   $q,   $exceptionHandler) {
     var deferreds = {};
@@ -84,4 +87,4 @@ function $TimeoutProvider() {
 
     return timeout;
   }];
-}
+});

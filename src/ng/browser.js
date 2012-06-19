@@ -1,5 +1,11 @@
 'use strict';
 
+goog.require('angular.coreModule');
+
+goog.provide('angular.core.$browser');
+
+angular.coreModule.provider('$browser', $BrowserProvider);
+
 /**
  * ! This is a private undocumented service !
  *

@@ -1,0 +1,39 @@
+<html>
+<head>
+  <script src="../../build/c-angular.min.js"></script>
+  <script>
+    var helloModule = angular.module('hello', ['core']);
+
+    helloModule.factory('$parse', function() {
+      var FNS = {
+        'name': function(s) { return s.name; }
+      };
+      function noop() {}
+      return function(name) {
+        return FNS[name] || noop;
+      };
+    });
+
+    helloModule.run(function($template, $rootScope) {
+      $rootScope.name = 'World';
+
+      var mainTemplate = $template('.', [
+        ['.name', ['[bind]', 'name']]
+      ]);
+      var mainBlock = mainTemplate('.');
+
+      mainBlock.attach($rootScope);
+    });
+  </script>
+</head>
+<body>
+    Hello <span class="name"></span>!
+    <script>
+      var injector = angular.injector(['hello']);
+
+      injector.invoke(function($rootScope) {
+          $rootScope.$apply();
+        });
+    </script>
+</body>
+</html>

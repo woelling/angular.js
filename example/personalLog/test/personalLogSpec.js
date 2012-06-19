@@ -1,4 +1,4 @@
-describe('example.personalLog.LogCtrl', function() {
+xdescribe('example.personalLog.LogCtrl', function() {
   var logScope;
 
 

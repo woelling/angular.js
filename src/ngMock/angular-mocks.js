@@ -1358,14 +1358,14 @@ angular.mock.$RootElementProvider = function() {
  * The `ngMock` is an angular module which is used with `ng` module and adds unit-test configuration as well as useful
  * mocks to the {@link AUTO.$injector $injector}.
  */
-angular.module('ngMock', ['ng']).provider({
+angular.module('ngMock', ['ng', 'core']).provider({
   $browser: angular.mock.$BrowserProvider,
   $exceptionHandler: angular.mock.$ExceptionHandlerProvider,
   $log: angular.mock.$LogProvider,
   $httpBackend: angular.mock.$HttpBackendProvider,
   $rootElement: angular.mock.$RootElementProvider
 }).config(function($provide) {
-  $provide.decorator('id', function($delegate, $browser) {
+  $provide.decorator('$timeout', function($delegate, $browser) {
     $delegate.flush = function() {
       $browser.defer.flush();
     };
@@ -1603,7 +1603,9 @@ window.jstestdriver && (function(window) {
     currentSpec = null;
 
     if (injector) {
-      injector.get('$rootElement').unbind();
+      var $rootElement = injector.get('$rootElement');
+
+      $rootElement.unbind && $rootElement.unbind();
       injector.get('$browser').pollFns.length = 0;
     }
 
@@ -1715,6 +1717,8 @@ window.jstestdriver && (function(window) {
   window.inject = angular.mock.inject = function() {
     var blockFns = Array.prototype.slice.call(arguments, 0);
     var errorForStack = new Error('Declaration Location');
+    var stack;
+
     return isSpecRunning() ? workFn() : workFn;
     /////////////////////
     function workFn() {
@@ -1730,7 +1734,11 @@ window.jstestdriver && (function(window) {
         try {
           injector.invoke(blockFns[i] || angular.noop, this);
         } catch (e) {
-          if(e.stack) e.stack +=  '\n' + errorForStack.stack;
+          if (errorForStack) {
+            stack = errorForStack.stack;
+            errorForStack = null;
+          }
+          if(e.stack) e.stack +=  '\n' + stack;
           throw e;
         } finally {
           errorForStack = null;

@@ -4,3 +4,31 @@
  * License: MIT
  */
 (function(window, document, undefined) {
+var angular = {};
+var goog = {
+  require: function() {},
+  provide: function(path) {
+    var parts = path.split('.'),
+        current = {angular:angular};
+
+    while(parts.length) {
+      var name = parts.shift();
+
+      if (current[name] == undefined) {
+        current[name] = {};
+      }
+      current = current[name];
+    }
+  },
+  inherits: function(childCtor, parentCtor) {
+    /** @constructor */
+    function tempCtor() {};
+    tempCtor.prototype = parentCtor.prototype;
+    childCtor.superClass_ = parentCtor.prototype;
+    childCtor.prototype = new tempCtor();
+    /** @override */
+    childCtor.prototype.constructor = childCtor;
+  },
+  exportProperty: function() {}
+};
+var COMPILED = false;

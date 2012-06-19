@@ -1,5 +1,11 @@
 'use strict';
 
+goog.require('angular.coreModule');
+goog.require('angular.core.$parse');
+goog.require('angular.core.$exceptionHandler');
+
+goog.provide('angular.core.$interpolate');
+
 /**
  * @ngdoc object
  * @name ng.$interpolateProvider
@@ -8,8 +14,9 @@
  * @description
  *
  * Used for configuring the interpolation markup. Defaults to `{{` and `}}`.
+ * @constructor
  */
-function $InterpolateProvider() {
+angular.coreModule.provider('$interpolate', function $InterpolateProvider() {
   var startSymbol = '{{';
   var endSymbol = '}}';
 
@@ -21,7 +28,7 @@ function $InterpolateProvider() {
    * Symbol to denote start of expression in the interpolated string. Defaults to `{{`.
    *
    * @param {string=} value new value to set the starting symbol to.
-   * @returns {string|self} Returns the symbol when used as getter and self if used as setter.
+   * @returns {string|*} Returns the symbol when used as getter and self if used as setter.
    */
   this.startSymbol = function(value){
     if (value) {
@@ -40,7 +47,7 @@ function $InterpolateProvider() {
    * Symbol to denote the end of expression in the interpolated string. Defaults to `}}`.
    *
    * @param {string=} value new value to set the ending symbol to.
-   * @returns {string|self} Returns the symbol when used as getter and self if used as setter.
+   * @returns {string|*} Returns the symbol when used as getter and self if used as setter.
    */
   this.endSymbol = function(value){
     if (value) {
@@ -82,7 +89,7 @@ function $InterpolateProvider() {
      * @param {boolean=} mustHaveExpression if set to true then the interpolation string must have
      *    embedded expression in order to return an interpolation function. Strings with no
      *    embedded expression will return null for the interpolation function.
-     * @returns {function(context)} an interpolation function which is used to compute the interpolated
+     * @returns {function(Object)} an interpolation function which is used to compute the interpolated
      *    string. The function has these parameters:
      *
      *    * `context`: an object against which any expressions embedded in the strings are evaluated
@@ -185,5 +192,4 @@ function $InterpolateProvider() {
 
     return $interpolate;
   }];
-}
-
+});

@@ -1,5 +1,12 @@
 'use strict';
 
+goog.require('angular.coreModule');
+
+goog.provide('angular.core.$filter');
+
+angular.coreModule.provider('$filter', $FilterProvider);
+
+
 /**
  * @ngdoc object
  * @name ng.$filterProvider

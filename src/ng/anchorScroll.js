@@ -1,3 +1,14 @@
+'use strict';
+
+goog.require('angular.coreModule');
+goog.require('angular.core.$window');
+goog.require('angular.core.$location');
+goog.require('angular.core.$rootScope');
+
+goog.provide('angular.core.$anchorProvider');
+
+angular.coreModule.provider('$anchorScroll', $AnchorScrollProvider);
+
 /**
  * @ngdoc function
  * @name ng.$anchorScroll

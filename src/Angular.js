@@ -1,5 +1,7 @@
 'use strict';
 
+goog.provide('angular');
+
 ////////////////////////////////////
 
 /**
@@ -11,7 +13,15 @@
  * @param {string} string String to be converted to lowercase.
  * @returns {string} Lowercased string.
  */
-var lowercase = function(string){return isString(string) ? string.toLowerCase() : string;};
+var lowercase = function(string) {
+  return isString(string) ? string.toLowerCase() : string;
+};
+
+var manualLowercase = function(s) {
+  return isString(s)
+      ? s.replace(/[A-Z]/g, function(ch) {return String.fromCharCode(ch.charCodeAt(0) | 32);})
+      : s;
+};
 
 
 /**
@@ -23,46 +33,38 @@ var lowercase = function(string){return isString(string) ? string.toLowerCase() 
  * @param {string} string String to be converted to uppercase.
  * @returns {string} Uppercased string.
  */
-var uppercase = function(string){return isString(string) ? string.toUpperCase() : string;};
-
-
-var manualLowercase = function(s) {
-  return isString(s)
-      ? s.replace(/[A-Z]/g, function(ch) {return fromCharCode(ch.charCodeAt(0) | 32);})
-      : s;
+var uppercase = function(string) {
+  return isString(string) ? string.toUpperCase() : string;
 };
+
 var manualUppercase = function(s) {
   return isString(s)
-      ? s.replace(/[a-z]/g, function(ch) {return fromCharCode(ch.charCodeAt(0) & ~32);})
+      ? s.replace(/[a-z]/g, function(ch) {return String.fromCharCode(ch.charCodeAt(0) & ~32);})
       : s;
 };
 
 
 // String#toLowerCase and String#toUpperCase don't produce correct results in browsers with Turkish
 // locale, for this reason we need to detect this case and redefine lowercase/uppercase methods
-// with correct but slower alternatives.
-if ('i' !== 'I'.toLowerCase()) {
+// with correct but slower alternatives. The strange way of calling is to prevent closure compiler
+// from optimizing it away.
+if ('i' !== String.prototype.toLowerCase.call(new String('I'))) {
   lowercase = manualLowercase;
   uppercase = manualUppercase;
 }
 
-function fromCharCode(code) {return String.fromCharCode(code);}
 
 
-var Error             = window.Error,
+var msie              =
     /** holds major version number for IE or NaN for real browsers */
-    msie              = int((/msie (\d+)/.exec(lowercase(navigator.userAgent)) || [])[1]),
-    jqLite,           // delay binding since jQuery could be loaded after us.
-    jQuery,           // delay binding
+    parseInt((/msie (\d+)/.exec(lowercase(navigator.userAgent)) || [])[1], 10),
     slice             = [].slice,
     push              = [].push,
     toString          = Object.prototype.toString,
-
-    /** @name angular */
-    angular           = window.angular || (window.angular = {}),
-    angularModule,
     nodeName_,
-    uid               = ['0', '0', '0'];
+    uid               = ['0', '0', '0'],
+    EMPTY_ARRAY       = [],
+    EMPTY_MAP         = {};
 
 /**
  * @ngdoc function
@@ -86,10 +88,10 @@ var Error             = window.Error,
      expect(log).toEqual(['name: misko', 'gender:male']);
    </pre>
  *
- * @param {Object|Array} obj Object to iterate over.
+ * @param {(Object|Array)} obj Object to iterate over.
  * @param {Function} iterator Iterator function.
  * @param {Object=} context Object to become context (`this`) for the iterator function.
- * @returns {Object|Array} Reference to `obj`.
+ * @returns {(Object|Array)} Reference to `obj`.
  */
 function forEach(obj, iterator, context) {
   var key;
@@ -141,7 +143,9 @@ function forEachSorted(obj, iterator, context) {
  * @returns {function(*, string)}
  */
 function reverseParams(iteratorFn) {
-  return function(value, key) { iteratorFn(key, value) };
+  return function(value, key) {
+    iteratorFn(key, value);
+  };
 }
 
 /**
@@ -186,7 +190,7 @@ function nextUid() {
  * @param {Object} dst Destination object.
  * @param {...Object} src Source object(s).
  */
-function extend(dst) {
+function extend(dst, src) {
   forEach(arguments, function(obj){
     if (obj !== dst) {
       forEach(obj, function(value, key){
@@ -197,9 +201,9 @@ function extend(dst) {
   return dst;
 }
 
-function int(str) {
-  return parseInt(str, 10);
-}
+// TODO(misko): clean up hack
+angular.extend = extend;
+
 
 
 function inherit(parent, extra) {
@@ -287,7 +291,7 @@ function isDefined(value){return typeof value != 'undefined';}
  * @param {*} value Reference to check.
  * @returns {boolean} True if `value` is an `Object` but not `null`.
  */
-function isObject(value){return value != null && typeof value == 'object';}
+function isObject(value){return value !== null && typeof value == 'object';}
 
 
 /**
@@ -328,6 +332,7 @@ function isNumber(value){return typeof value == 'number';}
  *
  * @param {*} value Reference to check.
  * @returns {boolean} True if `value` is a `Date`.
+ * @suppress {checkTypes}
  */
 function isDate(value){
   return toString.apply(value) == '[object Date]';
@@ -344,6 +349,7 @@ function isDate(value){
  *
  * @param {*} value Reference to check.
  * @returns {boolean} True if `value` is an `Array`.
+ * @suppress {checkTypes}
  */
 function isArray(value) {
   return toString.apply(value) == '[object Array]';
@@ -372,7 +378,7 @@ function isFunction(value){return typeof value == 'function';}
  * @returns {boolean} True if `obj` is a window obj.
  */
 function isWindow(obj) {
-  return obj && obj.document && obj.location && obj.alert && obj.setInterval;
+  return !!(obj && obj.document && obj.location && obj.alert && obj.setInterval);
 }
 
 
@@ -403,18 +409,18 @@ function trim(value) {
  * @description
  * Determines if a reference is a DOM element (or wrapped jQuery element).
  *
- * @param {*} value Reference to check.
+ * @param {*} node Reference to check.
  * @returns {boolean} True if `value` is a DOM element (or wrapped jQuery element).
  */
 function isElement(node) {
-  return node &&
+  return !!(node &&
     (node.nodeName  // we are a direct element
-    || (node.bind && node.find));  // we have a bind and find method part of jQuery API
+    || (node.bind && node.find)));  // we have a bind and find method part of jQuery API
 }
 
 /**
  * @param str 'key1,key2,...'
- * @returns {object} in the form of {key1:true, key2:true, ...}
+ * @returns {Object} in the form of {key1:true, key2:true, ...}
  */
 function makeMap(str){
   var obj = {}, items = str.split(","), i;
@@ -521,11 +527,12 @@ function isLeafNode (node) {
  * Note: this function is used to augment the Object type in Angular expressions. See
  * {@link ng.$filter} for more information about Angular arrays.
  *
- * @param {*} source The source that will be used to make a copy.
+ * @param {T} source The source that will be used to make a copy.
  *                   Can be any type, including primitives, `null`, and `undefined`.
- * @param {(Object|Array)=} destination Destination into which the source is copied. If
+ * @param {T=} destination Destination into which the source is copied. If
  *     provided, must be of the same type as `source`.
- * @returns {*} The copy or updated `destination`, if `destination` was specified.
+ * @returns {T} The copy or updated `destination`, if `destination` was specified.
+ * @template T
  */
 function copy(source, destination){
   if (isWindow(source) || isScope(source)) throw Error("Can't copy Window or Scope");
@@ -661,7 +668,7 @@ function sliceArgs(args, startIndex) {
  * @param {...*} args Optional arguments to be prebound to the `fn` function call.
  * @returns {function()} Function that wraps the `fn` with all the specified bindings.
  */
-function bind(self, fn) {
+function bind(self, fn, args) {
   var curryArgs = arguments.length > 2 ? sliceArgs(arguments, 2) : [];
   if (isFunction(fn) && !(fn instanceof RegExp)) {
     return curryArgs.length
@@ -712,7 +719,7 @@ function toJsonReplacer(key, value) {
  * @returns {string} Jsonified string representing `obj`.
  */
 function toJson(obj, pretty) {
-  return JSON.stringify(obj, toJsonReplacer, pretty ? '  ' : null);
+  return JSON.stringify(obj, toJsonReplacer, pretty ? '  ' : undefined);
 }
 
 
@@ -725,12 +732,10 @@ function toJson(obj, pretty) {
  * Deserializes a JSON string.
  *
  * @param {string} json JSON string to deserialize.
- * @returns {Object|Array|Date|string|number} Deserialized thingy.
+ * @returns {*} Deserialized thingy.
  */
 function fromJson(json) {
-  return isString(json)
-      ? JSON.parse(json)
-      : json;
+  return isString(json) ? JSON.parse(json) : json;
 }
 
 
@@ -744,30 +749,16 @@ function toBoolean(value) {
   return value;
 }
 
-/**
- * @returns {string} Returns the string representation of the element.
- */
-function startingTag(element) {
-  element = jqLite(element).clone();
-  try {
-    // turns out IE does not let you set .html() on elements which
-    // are not allowed to have children. So we just ignore it.
-    element.html('');
-  } catch(e) {}
-  return jqLite('<div>').append(element).html().
-      match(/^(<[^>]+>)/)[1].
-      replace(/^<([\w\-]+)/, function(match, nodeName) { return '<' + lowercase(nodeName); });
-}
-
-
-/////////////////////////////////////////////////
 
 /**
  * Parses an escaped url query string into key-value pairs.
  * @returns Object.<(string|boolean)>
  */
 function parseKeyValue(/**string*/keyValue) {
-  var obj = {}, key_value, key;
+  var obj = {};
+  var key_value;
+  var key;
+
   forEach((keyValue || "").split('&'), function(keyValue){
     if (keyValue) {
       key_value = keyValue.split('=');
@@ -827,109 +818,6 @@ function encodeUriQuery(val, pctEncodeSpaces) {
 }
 
 
-/**
- * @ngdoc directive
- * @name ng.directive:ngApp
- *
- * @element ANY
- * @param {angular.Module} ngApp on optional application
- *   {@link angular.module module} name to load.
- *
- * @description
- *
- * Use this directive to auto-bootstrap on application. Only
- * one directive can be used per HTML document. The directive
- * designates the root of the application and is typically placed
- * ot the root of the page.
- *
- * In the example below if the `ngApp` directive would not be placed
- * on the `html` element then the document would not be compiled
- * and the `{{ 1+2 }}` would not be resolved to `3`.
- *
- * `ngApp` is the easiest way to bootstrap an application.
- *
- <doc:example>
-   <doc:source>
-    I can add: 1 + 2 =  {{ 1+2 }}
-   </doc:source>
- </doc:example>
- *
- */
-function angularInit(element, bootstrap) {
-  var elements = [element],
-      appElement,
-      module,
-      names = ['ng:app', 'ng-app', 'x-ng-app', 'data-ng-app'],
-      NG_APP_CLASS_REGEXP = /\sng[:\-]app(:\s*([\w\d_]+);?)?\s/;
-
-  function append(element) {
-    element && elements.push(element);
-  }
-
-  forEach(names, function(name) {
-    names[name] = true;
-    append(document.getElementById(name));
-    name = name.replace(':', '\\:');
-    if (element.querySelectorAll) {
-      forEach(element.querySelectorAll('.' + name), append);
-      forEach(element.querySelectorAll('.' + name + '\\:'), append);
-      forEach(element.querySelectorAll('[' + name + ']'), append);
-    }
-  });
-
-  forEach(elements, function(element) {
-    if (!appElement) {
-      var className = ' ' + element.className + ' ';
-      var match = NG_APP_CLASS_REGEXP.exec(className);
-      if (match) {
-        appElement = element;
-        module = (match[2] || '').replace(/\s+/g, ',');
-      } else {
-        forEach(element.attributes, function(attr) {
-          if (!appElement && names[attr.name]) {
-            appElement = element;
-            module = attr.value;
-          }
-        });
-      }
-    }
-  });
-  if (appElement) {
-    bootstrap(appElement, module ? [module] : []);
-  }
-}
-
-/**
- * @ngdoc function
- * @name angular.bootstrap
- * @description
- * Use this function to manually start up angular application.
- *
- * See: {@link guide/bootstrap Bootstrap}
- *
- * @param {Element} element DOM element which is the root of angular application.
- * @param {Array<String|Function>=} modules an array of module declarations. See: {@link angular.module modules}
- * @returns {AUTO.$injector} Returns the newly created injector for this app.
- */
-function bootstrap(element, modules) {
-  element = jqLite(element);
-  modules = modules || [];
-  modules.unshift(['$provide', function($provide) {
-    $provide.value('$rootElement', element);
-  }]);
-  modules.unshift('ng');
-  var injector = createInjector(modules);
-  injector.invoke(
-    ['$rootScope', '$rootElement', '$compile', '$injector', function(scope, element, compile, injector){
-      scope.$apply(function() {
-        element.data('$injector', injector);
-        compile(element)(scope);
-      });
-    }]
-  );
-  return injector;
-}
-
 var SNAKE_CASE_REGEXP = /[A-Z]/g;
 function snake_case(name, separator){
   separator = separator || '_';
@@ -938,29 +826,11 @@ function snake_case(name, separator){
   });
 }
 
-function bindJQuery() {
-  // bind to jQuery if present;
-  jQuery = window.jQuery;
-  // reset to jQuery or default to us.
-  if (jQuery) {
-    jqLite = jQuery;
-    extend(jQuery.fn, {
-      scope: JQLitePrototype.scope,
-      controller: JQLitePrototype.controller,
-      injector: JQLitePrototype.injector,
-      inheritedData: JQLitePrototype.inheritedData
-    });
-    JQLitePatchJQueryRemove('remove', true);
-    JQLitePatchJQueryRemove('empty');
-    JQLitePatchJQueryRemove('html');
-  } else {
-    jqLite = JQLite;
-  }
-  angular.element = jqLite;
-}
-
 /**
- * throw error of the argument is falsy.
+ * Throw error of the argument is falsy.
+ * @param {*} arg
+ * @param {string=} name
+ * @param {string=} reason
  */
 function assertArg(arg, name, reason) {
   if (!arg) {
@@ -969,6 +839,12 @@ function assertArg(arg, name, reason) {
   return arg;
 }
 
+/**
+ * Throw error of the argument is falsy.
+ * @param {*} arg
+ * @param {string} name
+ * @param {boolean=} acceptArrayAnnotation
+ */
 function assertArgFn(arg, name, acceptArrayAnnotation) {
   if (acceptArrayAnnotation && isArray(arg)) {
       arg = arg[arg.length - 1];
@@ -978,3 +854,48 @@ function assertArgFn(arg, name, acceptArrayAnnotation) {
       (arg && typeof arg == 'object' ? arg.constructor.name || 'Object' : typeof arg));
   return arg;
 }
+
+
+function ASSERT(truth) {
+  if (!truth) {
+    //debugger;
+    throw Error('Expected truthy, but was: ' + truth);
+  }
+}
+
+
+/**
+ * @template T
+ * @param {Array.<string>} annotations DI annotations.
+ * @param {T} Type Constructor function.
+ * @return {T}
+ */
+angular.$inject = function(annotations, Type) {
+  Type.$inject = annotations;
+  return Type;
+};
+
+function integer(str) {
+  return parseInt(str, 10);
+}
+
+//TODO(misko): clean up
+angular.forEach = forEach;
+angular.isElement = isElement;
+angular.isArray = isArray;
+angular.callbacks = { counter: 0 };
+angular.bind = bind;
+angular.noop = noop;
+angular.isFunction = isFunction;
+angular.isDefined = isDefined;
+angular.isUndefined = isUndefined;
+angular.isNumber = isNumber;
+angular.isString = isString;
+angular.isObject = isObject;
+angular.toJson = toJson;
+angular.fromJson = fromJson;
+angular.equals = equals;
+angular.copy = copy;
+angular.extend = extend;
+angular.isDate = isDate;
+

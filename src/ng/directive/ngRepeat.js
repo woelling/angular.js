@@ -88,9 +88,14 @@ var ngRepeatDirective = ngDirective({
       // We need an array of these objects since the same object can be returned from the iterator.
       // We expect this to be a rare case.
       var lastOrder = new HashQueueMap();
-      scope.$watch(function(scope){
+      // Change the way we watch arrays. Instead of iterating on each digest, we now iterate
+      // on change in array. We don't yet support watching array contents, because angular does
+      // not have such concept, but it should be straight forward to add. This means that the
+      // demo app needs to create new array instance, but can reuse array items.
+      scope.$watch(rhs, function(newValue, oldValue, scope){
         var index, length,
-            collection = scope.$eval(rhs),
+            // no need to compute the collection, since it is passed in
+            collection = newValue,
             collectionLength = size(collection, true),
             childScope,
             // Same as lastOrder but it has the current state. It will become the

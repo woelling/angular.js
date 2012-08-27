@@ -136,6 +136,15 @@ function $RootScopeProvider(){
       this['this'] = this.$root =  this;
       this.$$asyncQueue = [];
       this.$$listeners = {};
+
+      var scope = this;
+      // Global observer for objects
+      this.$$observer = new ChangeSummaryDispatcher();
+      this.$$observer.observePathValue(this.$$asyncQueue, 'length', function() {
+        // Whenever we add $evalAsync, then automatically trigger 4digest
+        // to flush it in the current micro-task.
+        scope.$digest();
+      });
     }
 
     /**
@@ -195,7 +204,6 @@ function $RootScopeProvider(){
         child['this'] = child;
         child.$$listeners = {};
         child.$parent = this;
-        child.$$asyncQueue = [];
         child.$$watchers = child.$$nextSibling = child.$$childHead = child.$$childTail = null;
         child.$$prevSibling = this.$$childTail;
         if (this.$$childHead) {
@@ -293,22 +301,57 @@ function $RootScopeProvider(){
               eq: !!objectEquality
             };
 
-        // in the case user pass string, we need to compile it, do we really need this ?
-        if (!isFunction(listener)) {
-          var listenFn = compileToFn(listener || noop, 'listener');
-          watcher.fn = function(newVal, oldVal, scope) {listenFn(scope);};
-        }
+        if (typeof watchExp == 'string') {
+          // A watch can be a string in which case it is a path
+          scope.$$observer.observePathValue(scope, watchExp, function(newValue, oldValue) {
+            listener(newValue, oldValue, scope);
+          });
+          // This is a quick hack to prime the listener with initial value.
+          scope.$evalAsync(function() {
+            listener(scope.$eval(watchExp), undefined, scope);
+          });
+        } else if (watchExp.parts) {
+          // A watch can be interpolation in which case watch the idividual paths.
+          forEach(watchExp.parts, function(part) {
+            if (part.exp) {
+              scope.$$observer.observePathValue(scope, part.exp, function(newValue, oldValue) {
+                listener(watchExp(scope), 'TOO LAZY TO IMPLEMENT', scope);
+              });
+              // This is a quick hack to prime the listener with initial value.
+              scope.$evalAsync(function() {
+                listener(watchExp(scope), undefined, scope);
+              });
+            }
+          });
+        } else if (typeof watchExp.exp == 'string') {
+          // A watch can be pre-compiled expression, in which case use the uncompiled path.
+          scope.$$observer.observePathValue(scope, watchExp.exp, function(newValue, oldValue) {
+            listener(newValue, oldValue, scope);
+          });
+          // This is a quick hack to prime the listener with initial value.
+          scope.$evalAsync(function() {
+            listener(watchExp(scope), undefined, scope);
+          });
+        } else {
+          // We can't use ObjectObserve, so go do normal stuff
+          
+          // in the case user pass string, we need to compile it, do we really need this ?
+          if (!isFunction(listener)) {
+            var listenFn = compileToFn(listener || noop, 'listener');
+            watcher.fn = function(newVal, oldVal, scope) {listenFn(scope);};
+          }
 
-        if (!array) {
-          array = scope.$$watchers = [];
-        }
-        // we use unshift since we use a while loop in $digest for speed.
-        // the while loop reads in reverse order.
-        array.unshift(watcher);
+          if (!array) {
+            array = scope.$$watchers = [];
+          }
+          // we use unshift since we use a while loop in $digest for speed.
+          // the while loop reads in reverse order.
+          array.unshift(watcher);
 
-        return function() {
-          arrayRemove(array, watcher);
-        };
+          return function() {
+            arrayRemove(array, watcher);
+          };
+        }
       },
 
       /**

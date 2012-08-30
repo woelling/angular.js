@@ -1,0 +1,66 @@
+<!doctype html>
+<html ng-app>
+<head>
+  <script src="../src/change_summary.js"></script>
+  <script src="../src/dispatcher.js"></script>
+  <script src="../src/angular-bootstrap.js"></script>
+  <script>
+    function Filter($scope, $rootScope) {
+      var $digest = $rootScope.__proto__.$digest;
+      var digestTime = angular.element(window.digestTime);
+
+      $rootScope.__proto__.$digest = function() {
+        var start = new Date().getTime();
+        var value = $digest.apply(this, arguments);
+        var end = new Date().getTime();
+
+        digestTime.text(end - start);
+        console.log('$digest time:', end - start, 'ms.');
+
+        return value;
+      };
+
+
+
+      $scope.noop = 'change me'
+      $scope.width = 20;
+      $scope.height = 20;
+      $scope.rows = [];
+
+      $scope.$watch('width', function() {
+        $scope.size = $scope.width * $scope.height;
+      });
+
+      $scope.$watch('height', function() {
+        $scope.size = $scope.width * $scope.height;
+      });
+
+      $scope.$watch('size', function() {
+        $scope.rows = [];
+        for(var i = 0; i < $scope.height; i++) {
+          var row = [];
+          $scope.rows.push(row);
+          for(var j = 0; j < $scope.width; j++) {
+            row.push(i + 'x' + j);
+          }
+        }
+        console.log('rows:', $scope.rows);
+      });
+
+    }
+  </script>
+</head>
+<body ng-app="time" ng-controller="Filter">
+  Last $digest cycle: <span id="digestTime"></span> ms.
+  <hr>
+  NOOP: <input type="text" ng-model="noop"> <span ng-bind="noop"></span>
+  <hr>
+  Size: <input type="number" ng-model="width"> x <input type="number" ng-model="height">
+  = <span ng-bind="size"></span>
+  <table>
+    <tr ng-repeat="row in rows">
+      <td ng-repeat="cell in row" ng-bind="cell"></td>
+    </tr>
+  </table>
+</body>
+</html>

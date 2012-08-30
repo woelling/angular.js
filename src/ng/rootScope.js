@@ -143,7 +143,9 @@ function $RootScopeProvider(){
       this.$$observer.observePathValue(this.$$asyncQueue, 'length', function() {
         // Whenever we add $evalAsync, then automatically trigger 4digest
         // to flush it in the current micro-task.
-        scope.$digest();
+        if (!$rootScope.$$phase) {
+          scope.$digest();
+        }
       });
     }
 

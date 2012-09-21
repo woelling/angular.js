@@ -1365,7 +1365,7 @@ angular.module('ngMock', ['ng']).provider({
   $httpBackend: angular.mock.$HttpBackendProvider,
   $rootElement: angular.mock.$RootElementProvider
 }).config(function($provide) {
-  $provide.decorator('$timeout', function($delegate, $browser) {
+  $provide.decorator('id', function($delegate, $browser) {
     $delegate.flush = function() {
       $browser.defer.flush();
     };

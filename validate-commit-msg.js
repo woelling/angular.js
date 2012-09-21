@@ -14,7 +14,7 @@ var util = require('util');
 
 var MAX_LENGTH = 70;
 var PATTERN = /^(\w*)(\(([\w\$\.\-\*]*)\))?\: (.*)$/;
-var IGNORED = /^WIP\:/;
+var IGNORED = /^(WIP\:|fixup\!)/;
 var TYPES = {
   feat: true,
   fix: true,
@@ -50,7 +50,7 @@ var validateMessage = function(message) {
   var match = PATTERN.exec(message);
 
   if (!match) {
-    error('does not match "<type>(<scope>): <subject>" !');
+    error('does not match "<type>(<scope>): <subject>", it was "' + message + '"!');
     return false;
   }
 

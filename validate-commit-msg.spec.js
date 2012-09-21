@@ -48,7 +48,9 @@ describe('validate-commit-msg.js', function() {
       var msg = 'not correct format';
 
       expect(m.validateMessage(msg)).toBe(INVALID);
-      expect(errors).toEqual(['INVALID COMMIT MSG: does not match "<type>(<scope>): <subject>" !']);
+      expect(errors).toEqual([
+        'INVALID COMMIT MSG: does not match "<type>(<scope>): <subject>", ' +
+        'it was "not correct format"!']);
     });
 
 
@@ -70,6 +72,10 @@ describe('validate-commit-msg.js', function() {
 
     it('should ignore msg prefixed with "WIP: "', function() {
       expect(m.validateMessage('WIP: bullshit')).toBe(VALID);
+    });
+
+    it('should ignore msg prefixed with "fixup! "', function() {
+      expect(m.validateMessage('fixup! commit message')).toBe(VALID);
     });
   });
 });

@@ -4,6 +4,7 @@ describe('injector', function() {
   var providers;
   var injector;
   var providerInjector;
+  var annotate;
 
   beforeEach(module(function($provide, $injector) {
     providers = function(name, factory, annotations) {
@@ -13,6 +14,7 @@ describe('injector', function() {
   }));
   beforeEach(inject(function($injector){
     injector = $injector;
+    annotate = injector.annotate;
   }));
 
 
@@ -30,6 +32,17 @@ describe('injector', function() {
     providers('a', function() {return 'Mi';});
     providers('b', function(mi) {return mi+'sko';}, {$inject:['a']});
     expect(injector.get('b')).toEqual('Misko');
+  });
+
+
+  it('should enumerate providers', function() {
+    providers('a', noop);
+    providers('b', noop);
+
+    var list = injector.enumerate();
+
+    expect(indexOf(list, 'a')).not.toEqual(-1);
+    expect(indexOf(list, 'b')).not.toEqual(-1);
   });
 
 
@@ -61,7 +74,7 @@ describe('injector', function() {
   it('should provide useful message if no provider', function() {
     expect(function() {
       injector.get('idontexist');
-    }).toThrow("Unknown provider: idontexistProvider <- idontexist");
+    }).toThrow("Unknown service: idontexist");
   });
 
 
@@ -70,7 +83,7 @@ describe('injector', function() {
     providers('b', function(a) {return 2;});
     expect(function() {
       injector.get('b');
-    }).toThrow("Unknown provider: idontexistProvider <- idontexist <- a <- b");
+    }).toThrow("Unknown service: idontexist <- a <- b");
   });
 
 
@@ -97,13 +110,13 @@ describe('injector', function() {
 
     it('should call function', function() {
       fn.$inject = ['a', 'b', 'c', 'd'];
-      injector.invoke(fn, {name:"this"},  {c:3, d:4});
+      injector.locals({c:3, d:4}).invoke(fn, {name:"this"});
       expect(args).toEqual([{name:'this'}, 1, 2, 3, 4]);
     });
 
 
     it('should treat array as annotations', function() {
-      injector.invoke(['a', 'b', 'c', 'd', fn], {name:"this"}, {c:3, d:4});
+      injector.locals({c:3, d:4}).invoke(['a', 'b', 'c', 'd', fn], {name:"this"});
       expect(args).toEqual([{name:'this'}, 1, 2, 3, 4]);
     });
 
@@ -545,7 +558,7 @@ describe('injector', function() {
         angular.module('TestModule', [], function(xyzzy) {});
         expect(function() {
           createInjector(['TestModule']);
-        }).toThrow('Unknown provider: xyzzy from TestModule');
+        }).toThrow('Unknown service: xyzzy from TestModule');
       });
 
 
@@ -553,7 +566,7 @@ describe('injector', function() {
         function myModule(xyzzy){}
         expect(function() {
           createInjector([myModule]);
-        }).toThrow('Unknown provider: xyzzy from ' + myModule);
+        }).toThrow('Unknown service: xyzzy from ' + myModule);
       });
 
 
@@ -561,7 +574,7 @@ describe('injector', function() {
         function myModule(xyzzy){}
         expect(function() {
           createInjector([['xyzzy', myModule]]);
-        }).toThrow('Unknown provider: xyzzy from ' + myModule);
+        }).toThrow('Unknown service: xyzzy from ' + myModule);
       });
 
 
@@ -639,11 +652,11 @@ describe('injector', function() {
       expect($injector.invoke(function(book, author) {
         return author + ':' + book;
       })).toEqual('melville:moby');
-      expect($injector.invoke(
+      expect($injector.locals({author:'m', chapter:'ch1'}).invoke(
         function(book, author, chapter) {
           expect(this).toEqual($injector);
           return author + ':' + book + '-' + chapter;
-        }, $injector, {author:'m', chapter:'ch1'})).toEqual('m:moby-ch1');
+        }, $injector)).toEqual('m:moby-ch1');
     });
 
 
@@ -759,7 +772,7 @@ describe('injector', function() {
       }]);
       expect(function() {
         $injector.get('nameProvider');
-      }).toThrow("Unknown provider: nameProviderProvider <- nameProvider");
+      }).toThrow("Unknown service: nameProvider");
     });
 
 
@@ -767,17 +780,169 @@ describe('injector', function() {
       var  $injector = createInjector([]);
       expect(function() {
         $injector.get('$provide').value('a', 'b');
-      }).toThrow("Unknown provider: $provideProvider <- $provide");
+      }).toThrow("Unknown service: $provide");
     });
 
 
     it('should prevent instance lookup in module', function() {
-      function instanceLookupInModule(name) { throw Error('FAIL'); }
+      function instanceLookupInModule(name) {
+        throw Error('FAIL:' + name);
+       }
       expect(function() {
         createInjector([function($provide) {
           $provide.value('name', 'angular')
         }, instanceLookupInModule]);
-      }).toThrow('Unknown provider: name from ' + String(instanceLookupInModule));
+      }).toThrow('Unknown service: name from ' + String(instanceLookupInModule));
+    });
+  });
+
+
+  describe('module loading', function() {
+    var baseInjector;
+
+    beforeEach(function() {
+      baseInjector = createInjector([function($provide) {
+        $provide.value({
+          a: 'A',
+          b: 'B'
+        });
+      }]);
+    });
+
+
+    it('should create child injector', function() {
+      var childInjector = baseInjector.load([function($provide) {
+        $provide.value('a', 'cA');
+        $provide.factory('c', function(a, b) {
+          return a+b;
+        });
+      }]);
+
+      expect(childInjector.get('a')).toEqual('cA');
+      expect(childInjector.get('b')).toEqual('B');
+      expect(childInjector.get('c')).toEqual('cAB');
+
+      expect(baseInjector.get('a')).toEqual('A');
+      expect(baseInjector.get('b')).toEqual('B');
+
+      expect(childInjector.get('$injector')).toBe(childInjector);
+      expect(baseInjector.get('$injector')).toBe(baseInjector);
+    });
+  });
+
+
+  describe('local injector', function() {
+    var baseInjector;
+
+    beforeEach(function() {
+      baseInjector = createInjector([function($provide) {
+        $provide.value({
+          a: 'A',
+          b: 'B'
+        });
+      }]);
+    });
+
+
+    it('should create locals injector', function() {
+      var childInjector = baseInjector.locals({
+        a: 'Alocal',
+        c: 'C'
+      });
+
+      expect(childInjector.get('a')).toEqual('Alocal');
+      expect(childInjector.get('b')).toEqual('B');
+      expect(childInjector.get('c')).toEqual('C');
+
+      expect(baseInjector.get('a')).toEqual('A');
+      expect(baseInjector.get('b')).toEqual('B');
+
+      expect(childInjector.get('$injector')).toBe(childInjector);
+      expect(baseInjector.get('$injector')).toBe(baseInjector);
+    });
+
+    it('should delegate to factory function', function() {
+      var childInjector = baseInjector.locals({
+        a: 'Alocal',
+        c: 'C'
+      }, function(name, injector) {
+        expect(injector).toBe(childInjector);
+        return name.charAt(0) == 'a' ? name : undefined;
+      });
+
+      expect(childInjector.get('a')).toEqual('Alocal');
+      expect(childInjector.get('a1')).toEqual('a1');
+      expect(childInjector.get('b')).toEqual('B');
+      expect(childInjector.get('c')).toEqual('C');
+    });
+  });
+
+
+  describe('limited injector', function() {
+    var baseInjector;
+
+    beforeEach(function() {
+      baseInjector = createInjector([function($provide) {
+        $provide.value({
+          a: 'A',
+          b: 'B'
+        });
+        $provide.factory({
+          'a:a': function(a) {
+            return 'limit(' + a + ')';
+          },
+          'a:b': ['a:a', 'b', function(a_a, b) {
+            return 'b(' + a_a + ')';
+          }]
+        })
+      }]);
+    });
+
+    it('should create locals injector', function() {
+      var aInjector = baseInjector.limit('a:');
+
+      expect(aInjector.get('a')).toEqual('limit(A)');
+      expect(aInjector.get('b')).toEqual('b(limit(A))');
+    });
+
+    it('should enumerate services', function() {
+      var aInjector = baseInjector.load([function($provide) {
+        $provide.value('a:c', 123);
+      }]).limit('a:');
+
+      expect(aInjector.enumerate()).toEqual(['a', 'b', 'c']);
+    });
+  })
+
+  describe('private instances', function() {
+    var baseInjector;
+
+    beforeEach(function() {
+      baseInjector = createInjector([function($provide) {
+        $provide.value({
+          a: ['A'],
+          b: ['B']
+        });
+        $provide.factory('p', function(a, b) {
+          return {
+            a: a,
+            b: b
+          }
+        }, true);
+      }]);
+    });
+
+
+    it('should create a private instance', function() {
+      var childInjector = baseInjector.load();
+      var baseP = baseInjector.get('p');
+      var childP = childInjector.get('p');
+      var baseA = baseInjector.get('a');
+      var childA = childInjector.get('a');
+
+      expect(baseP).not.toBe(childP);
+      expect(baseP.a).toBe(baseA);
+      expect(baseA).toBe(childA);
     });
   });
 });

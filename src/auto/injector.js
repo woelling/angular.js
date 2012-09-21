@@ -6,13 +6,13 @@
  * @function
  *
  * @description
- * Creates an injector function that can be used for retrieving services as well as for
+ * Creates an injector that can be used for retrieving services as well as for
  * dependency injection (see {@link guide/di dependency injection}).
  *
 
  * @param {Array.<string|Function>} modules A list of module functions or their aliases. See
  *        {@link angular.module}. The `ng` module must be explicitly added.
- * @returns {function()} Injector function. See {@link AUTO.$injector $injector}.
+ * @returns {function()} Injector an injector. See {@link AUTO.$injector $injector}.
  *
  * @example
  * Typical usage
@@ -29,539 +29,252 @@
  * </pre>
  */
 
+function createInjector(modulesToLoad) {
+  var $$INJECTOR = '$injector';
+  var PROVIDER_SUFFIX = 'Provider';
+  var path = [];
+  var pathHash = {}
+  var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
+  var FN_ARG_SPLIT = /,/;
+  var FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
+  var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 
-/**
- * @ngdoc overview
- * @name AUTO
- * @description
- *
- * Implicit module which gets automatically added to each {@link AUTO.$injector $injector}.
- */
-
-var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
-var FN_ARG_SPLIT = /,/;
-var FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
-var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-function annotate(fn) {
-  var $inject,
+  function annotate(fn) {
+    var $inject,
       fnText,
       argDecl,
       last;
 
-  if (typeof fn == 'function') {
-    if (!($inject = fn.$inject)) {
-      $inject = [];
-      fnText = fn.toString().replace(STRIP_COMMENTS, '');
-      argDecl = fnText.match(FN_ARGS);
-      forEach(argDecl[1].split(FN_ARG_SPLIT), function(arg){
-        arg.replace(FN_ARG, function(all, underscore, name){
-          $inject.push(name);
+    if (typeof fn == 'function') {
+      if (!($inject = fn.$inject)) {
+        $inject = [];
+        fnText = fn.toString().replace(STRIP_COMMENTS, '');
+        argDecl = fnText.match(FN_ARGS);
+        forEach(argDecl[1].split(FN_ARG_SPLIT), function(arg){
+          arg.replace(FN_ARG, function(all, underscore, name){
+            $inject.push(name);
+          });
         });
+        fn.$inject = $inject;
+      }
+    } else if (isArray(fn)) {
+      last = fn.length - 1;
+      assertArgFn(fn[last], 'fn')
+      $inject = fn.slice(0, last);
+    } else {
+      assertArgFn(fn, 'fn', true);
+    }
+    return $inject;
+  }
+
+  function injectorMethods(prototype, methods) {
+    var injectorPrototype = Injector.prototype;
+
+    prototype.instantiate = injectorPrototype.instantiate;
+    prototype.invoke = injectorPrototype.invoke;
+    prototype.annotate = injectorPrototype.annotate;
+    prototype.enumerate = injectorPrototype.enumerate;
+
+    extend(prototype, methods);
+  }
+
+  function pathPush(name) {
+    if (pathHash[name]) {
+      throw Error('Circular dependency: ' + path.join(' <- '));
+    }
+    pathHash[name] = true;
+    path.unshift(name);
+  }
+
+  function pathPop() {
+    pathHash[path.shift()] = false;
+  }
+
+  /**
+   * @ngdoc object
+   * @name AUTO.$injector
+   * @function
+   *
+   * @description
+   *
+   * `$injector` is used to retrieve object instances as defined by {@link AUTO.$provide provider},
+   * instantiate types, invoke methods, and load sub-modules.
+   *
+   * The following always holds true:
+   *
+   * <pre>
+   *   var $injector = angular.injector();
+   *   expect($injector.get('$injector')).toBe($injector);
+   *   expect($injector.invoke(function($injector){
+   *     return $injector;
+   *   }).toBe($injector);
+   * </pre>
+   *
+   * # Injection Function Annotation
+   *
+   * JavaScript does not have annotations, and annotations are needed for dependency injection. The
+   * following ways are all valid way of annotating function with injection arguments and are
+   * equivalent.
+   *
+   * <pre>
+   *   // inferred (only works if code not minified/obfuscated)
+   *   $inject.invoke(function(serviceA){});
+   *
+   *   // annotated
+   *   function explicit(serviceA) {};
+   *   explicit.$inject = ['serviceA'];
+   *   $inject.invoke(explicit);
+   *
+   *   // inline
+   *   $inject.invoke(['serviceA', function(serviceA){}]);
+   * </pre>
+   *
+   * ## Inference
+   *
+   * In JavaScript calling `toString()` on a function returns the function definition. The
+   * definition can then be parsed and the function arguments can be extracted. *NOTE:* This does
+   * not work with minification, and obfuscation tools since these tools change the argument names.
+   *
+   * ## `$inject` Annotation
+   * By adding a `$inject` property onto a function the injection parameters can be specified.
+   * (This is minification safe)
+   *
+   * ## Inline
+   * As an array of injection names, where the last item in the array is the function to call.
+   * (This is minification safe)
+   */
+  function Injector(parent) {
+    this.$$parent = parent;
+
+    function Instance() {}
+    Instance.prototype = parent.$$instances;
+    this.$$instances = new Instance();
+
+    function Providers() {}
+    Providers.prototype = parent.$$providers;
+    this.$$providers = new Providers();
+
+    function ModuleMap() {}
+    ModuleMap.prototype = parent.$$modules;
+    this.$$modules = new ModuleMap();
+
+    this.$$instances.$injector = [this];
+  }
+
+  Injector.prototype = {
+    /**
+     * @ngdoc method
+     * @name AUTO.$injector#get
+     * @methodOf AUTO.$injector
+     *
+     * @description
+     * Return an instance of the service.
+     *
+     * @param {string} name The name of the instance to retrieve.
+     * @return {*} The instance.
+     *
+     * <pre>
+     *   angular.module('myModule').
+     *     value('salutation', 'Hello');
+     *
+     *   var injector = angular.injector(['myModule']);
+     *   expect(injector.get('salutation')).toEqual('Hello');
+     * </pre>
+     */
+    get: function(name) {
+      var instances = this.$$instances,
+          instance = instances[name],
+          provider;
+
+      if (instance instanceof Array) {
+        if (!instance[1] /* private */ || instances.hasOwnProperty(name)) {
+          // you can only return a hit if not private or defined in this injector
+          return instance[0];
+        }
+      }
+
+      provider = this.$$providers[name + PROVIDER_SUFFIX];
+      if (provider instanceof Array) {
+        provider = provider[0];
+        if (provider.$private || this.$$providers.hasOwnProperty(name + PROVIDER_SUFFIX)) {
+          pathPush(name);
+          try {
+            instance = this.invoke(provider.$get, provider);
+            instances[name] = [instance, provider.$private];
+            return instance;
+          } finally {
+            pathPop();
+          }
+        }
+      }
+
+      return this.$$parent.get(name);
+    },
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$injector#enumerate
+     * @methodOf AUTO.$injector
+     *
+     * @description
+     * Return a list of all visible services.
+     *
+     * @return {Array.<string>} The instance.
+     *
+     * <pre>
+     *   angular.module('myModule').
+     *     value('salutation', 'Hello');
+     *
+     *   var injector = angular.injector(['myModule']);
+     *   expect(injector.enumerate).toEqual(['salutation']);
+     * </pre>
+     */
+    enumerate: function() {
+      var list = this.$$parent.enumerate();
+
+      forEach(this.$$providers, function(provider, name) {
+        list.push(name.substr(0, name.length - PROVIDER_SUFFIX.length));
       });
-      fn.$inject = $inject;
-    }
-  } else if (isArray(fn)) {
-    last = fn.length - 1;
-    assertArgFn(fn[last], 'fn')
-    $inject = fn.slice(0, last);
-  } else {
-    assertArgFn(fn, 'fn', true);
-  }
-  return $inject;
-}
 
-///////////////////////////////////////
+      list.sort();
+      return list;
+    },
 
-/**
- * @ngdoc object
- * @name AUTO.$injector
- * @function
- *
- * @description
- *
- * `$injector` is used to retrieve object instances as defined by
- * {@link AUTO.$provide provider}, instantiate types, invoke methods,
- * and load modules.
- *
- * The following always holds true:
- *
- * <pre>
- *   var $injector = angular.injector();
- *   expect($injector.get('$injector')).toBe($injector);
- *   expect($injector.invoke(function($injector){
- *     return $injector;
- *   }).toBe($injector);
- * </pre>
- *
- * # Injection Function Annotation
- *
- * JavaScript does not have annotations, and annotations are needed for dependency injection. The
- * following ways are all valid way of annotating function with injection arguments and are equivalent.
- *
- * <pre>
- *   // inferred (only works if code not minified/obfuscated)
- *   $inject.invoke(function(serviceA){});
- *
- *   // annotated
- *   function explicit(serviceA) {};
- *   explicit.$inject = ['serviceA'];
- *   $inject.invoke(explicit);
- *
- *   // inline
- *   $inject.invoke(['serviceA', function(serviceA){}]);
- * </pre>
- *
- * ## Inference
- *
- * In JavaScript calling `toString()` on a function returns the function definition. The definition can then be
- * parsed and the function arguments can be extracted. *NOTE:* This does not work with minification, and obfuscation
- * tools since these tools change the argument names.
- *
- * ## `$inject` Annotation
- * By adding a `$inject` property onto a function the injection parameters can be specified.
- *
- * ## Inline
- * As an array of injection names, where the last item in the array is the function to call.
- */
-
-/**
- * @ngdoc method
- * @name AUTO.$injector#get
- * @methodOf AUTO.$injector
- *
- * @description
- * Return an instance of the service.
- *
- * @param {string} name The name of the instance to retrieve.
- * @return {*} The instance.
- */
-
-/**
- * @ngdoc method
- * @name AUTO.$injector#invoke
- * @methodOf AUTO.$injector
- *
- * @description
- * Invoke the method and supply the method arguments from the `$injector`.
- *
- * @param {!function} fn The function to invoke. The function arguments come form the function annotation.
- * @param {Object=} self The `this` for the invoked method.
- * @param {Object=} locals Optional object. If preset then any argument names are read from this object first, before
- *   the `$injector` is consulted.
- * @returns {*} the value returned by the invoked `fn` function.
- */
-
-/**
- * @ngdoc method
- * @name AUTO.$injector#instantiate
- * @methodOf AUTO.$injector
- * @description
- * Create a new instance of JS type. The method takes a constructor function invokes the new operator and supplies
- * all of the arguments to the constructor function as specified by the constructor annotation.
- *
- * @param {function} Type Annotated constructor function.
- * @param {Object=} locals Optional object. If preset then any argument names are read from this object first, before
- *   the `$injector` is consulted.
- * @returns {Object} new instance of `Type`.
- */
-
-/**
- * @ngdoc method
- * @name AUTO.$injector#annotate
- * @methodOf AUTO.$injector
- *
- * @description
- * Returns an array of service names which the function is requesting for injection. This API is used by the injector
- * to determine which services need to be injected into the function when the function is invoked. There are three
- * ways in which the function can be annotated with the needed dependencies.
- *
- * # Argument names
- *
- * The simplest form is to extract the dependencies from the arguments of the function. This is done by converting
- * the function into a string using `toString()` method and extracting the argument names.
- * <pre>
- *   // Given
- *   function MyController($scope, $route) {
- *     // ...
- *   }
- *
- *   // Then
- *   expect(injector.annotate(MyController)).toEqual(['$scope', '$route']);
- * </pre>
- *
- * This method does not work with code minfication / obfuscation. For this reason the following annotation strategies
- * are supported.
- *
- * # The `$injector` property
- *
- * If a function has an `$inject` property and its value is an array of strings, then the strings represent names of
- * services to be injected into the function.
- * <pre>
- *   // Given
- *   var MyController = function(obfuscatedScope, obfuscatedRoute) {
- *     // ...
- *   }
- *   // Define function dependencies
- *   MyController.$inject = ['$scope', '$route'];
- *
- *   // Then
- *   expect(injector.annotate(MyController)).toEqual(['$scope', '$route']);
- * </pre>
- *
- * # The array notation
- *
- * It is often desirable to inline Injected functions and that's when setting the `$inject` property is very
- * inconvenient. In these situations using the array notation to specify the dependencies in a way that survives
- * minification is a better choice:
- *
- * <pre>
- *   // We wish to write this (not minification / obfuscation safe)
- *   injector.invoke(function($compile, $rootScope) {
- *     // ...
- *   });
- *
- *   // We are forced to write break inlining
- *   var tmpFn = function(obfuscatedCompile, obfuscatedRootScope) {
- *     // ...
- *   };
- *   tmpFn.$inject = ['$compile', '$rootScope'];
- *   injector.invoke(tempFn);
- *
- *   // To better support inline function the inline annotation is supported
- *   injector.invoke(['$compile', '$rootScope', function(obfCompile, obfRootScope) {
- *     // ...
- *   }]);
- *
- *   // Therefore
- *   expect(injector.annotate(
- *      ['$compile', '$rootScope', function(obfus_$compile, obfus_$rootScope) {}])
- *    ).toEqual(['$compile', '$rootScope']);
- * </pre>
- *
- * @param {function|Array.<string|Function>} fn Function for which dependent service names need to be retrieved as described
- *   above.
- *
- * @returns {Array.<string>} The names of the services which the function requires.
- */
-
-
-
-
-/**
- * @ngdoc object
- * @name AUTO.$provide
- *
- * @description
- *
- * Use `$provide` to register new providers with the `$injector`. The providers are the factories for the instance.
- * The providers share the same name as the instance they create with the `Provider` suffixed to them.
- *
- * A provider is an object with a `$get()` method. The injector calls the `$get` method to create a new instance of
- * a service. The Provider can have additional methods which would allow for configuration of the provider.
- *
- * <pre>
- *   function GreetProvider() {
- *     var salutation = 'Hello';
- *
- *     this.salutation = function(text) {
- *       salutation = text;
- *     };
- *
- *     this.$get = function() {
- *       return function (name) {
- *         return salutation + ' ' + name + '!';
- *       };
- *     };
- *   }
- *
- *   describe('Greeter', function(){
- *
- *     beforeEach(module(function($provide) {
- *       $provide.provider('greet', GreetProvider);
- *     });
- *
- *     it('should greet', inject(function(greet) {
- *       expect(greet('angular')).toEqual('Hello angular!');
- *     }));
- *
- *     it('should allow configuration of salutation', function() {
- *       module(function(greetProvider) {
- *         greetProvider.salutation('Ahoj');
- *       });
- *       inject(function(greet) {
- *         expect(greet('angular')).toEqual('Ahoj angular!');
- *       });
- *     )};
- *
- *   });
- * </pre>
- */
-
-/**
- * @ngdoc method
- * @name AUTO.$provide#provider
- * @methodOf AUTO.$provide
- * @description
- *
- * Register a provider for a service. The providers can be retrieved and can have additional configuration methods.
- *
- * @param {string} name The name of the instance. NOTE: the provider will be available under `name + 'Provider'` key.
- * @param {(Object|function())} provider If the provider is:
- *
- *   - `Object`: then it should have a `$get` method. The `$get` method will be invoked using
- *               {@link AUTO.$injector#invoke $injector.invoke()} when an instance needs to be created.
- *   - `Constructor`: a new instance of the provider will be created using
- *               {@link AUTO.$injector#instantiate $injector.instantiate()}, then treated as `object`.
- *
- * @returns {Object} registered provider instance
- */
-
-/**
- * @ngdoc method
- * @name AUTO.$provide#factory
- * @methodOf AUTO.$provide
- * @description
- *
- * A short hand for configuring services if only `$get` method is required.
- *
- * @param {string} name The name of the instance.
- * @param {function()} $getFn The $getFn for the instance creation. Internally this is a short hand for
- * `$provide.provider(name, {$get: $getFn})`.
- * @returns {Object} registered provider instance
- */
-
-
-/**
- * @ngdoc method
- * @name AUTO.$provide#service
- * @methodOf AUTO.$provide
- * @description
- *
- * A short hand for registering service of given class.
- *
- * @param {string} name The name of the instance.
- * @param {Function} constructor A class (constructor function) that will be instantiated.
- * @returns {Object} registered provider instance
- */
-
-
-/**
- * @ngdoc method
- * @name AUTO.$provide#value
- * @methodOf AUTO.$provide
- * @description
- *
- * A short hand for configuring services if the `$get` method is a constant.
- *
- * @param {string} name The name of the instance.
- * @param {*} value The value.
- * @returns {Object} registered provider instance
- */
-
-
-/**
- * @ngdoc method
- * @name AUTO.$provide#constant
- * @methodOf AUTO.$provide
- * @description
- *
- * A constant value, but unlike {@link AUTO.$provide#value value} it can be injected
- * into configuration function (other modules) and it is not interceptable by
- * {@link AUTO.$provide#decorator decorator}.
- *
- * @param {string} name The name of the constant.
- * @param {*} value The constant value.
- * @returns {Object} registered instance
- */
-
-
-/**
- * @ngdoc method
- * @name AUTO.$provide#decorator
- * @methodOf AUTO.$provide
- * @description
- *
- * Decoration of service, allows the decorator to intercept the service instance creation. The
- * returned instance may be the original instance, or a new instance which delegates to the
- * original instance.
- *
- * @param {string} name The name of the service to decorate.
- * @param {function()} decorator This function will be invoked when the service needs to be
- *    instanciated. The function is called using the {@link AUTO.$injector#invoke
- *    injector.invoke} method and is therefore fully injectable. Local injection arguments:
- *
- *    * `$delegate` - The original service instance, which can be monkey patched, configured,
- *      decorated or delegated to.
- */
-
-
-function createInjector(modulesToLoad) {
-  var INSTANTIATING = {},
-      providerSuffix = 'Provider',
-      path = [],
-      loadedModules = new HashMap(),
-      providerCache = {
-        $provide: {
-            provider: supportObject(provider),
-            factory: supportObject(factory),
-            service: supportObject(service),
-            value: supportObject(value),
-            constant: supportObject(constant),
-            decorator: decorator
-          }
-      },
-      providerInjector = (providerCache.$injector =
-          createInternalInjector(providerCache, function() {
-            throw Error("Unknown provider: " + path.join(' <- '));
-          })),
-      instanceCache = {},
-      instanceInjector = (instanceCache.$injector =
-          createInternalInjector(instanceCache, function(servicename) {
-            var provider = providerInjector.get(servicename + providerSuffix);
-            return instanceInjector.invoke(provider.$get, provider);
-          }));
-
-
-  forEach(loadModules(modulesToLoad), function(fn) { instanceInjector.invoke(fn || noop); });
-
-  return instanceInjector;
-
-  ////////////////////////////////////
-  // $provider
-  ////////////////////////////////////
-
-  function supportObject(delegate) {
-    return function(key, value) {
-      if (isObject(key)) {
-        forEach(key, reverseParams(delegate));
-      } else {
-        return delegate(key, value);
-      }
-    }
-  }
-
-  function provider(name, provider_) {
-    if (isFunction(provider_)) {
-      provider_ = providerInjector.instantiate(provider_);
-    }
-    if (!provider_.$get) {
-      throw Error('Provider ' + name + ' must define $get factory method.');
-    }
-    return providerCache[name + providerSuffix] = provider_;
-  }
-
-  function factory(name, factoryFn) { return provider(name, { $get: factoryFn }); }
-
-  function service(name, constructor) {
-    return factory(name, ['$injector', function($injector) {
-      return $injector.instantiate(constructor);
-    }]);
-  }
-
-  function value(name, value) { return factory(name, valueFn(value)); }
-
-  function constant(name, value) {
-    providerCache[name] = value;
-    instanceCache[name] = value;
-  }
-
-  function decorator(serviceName, decorFn) {
-    var origProvider = providerInjector.get(serviceName + providerSuffix),
-        orig$get = origProvider.$get;
-
-    origProvider.$get = function() {
-      var origInstance = instanceInjector.invoke(orig$get, origProvider);
-      return instanceInjector.invoke(decorFn, null, {$delegate: origInstance});
-    };
-  }
-
-  ////////////////////////////////////
-  // Module Loading
-  ////////////////////////////////////
-  function loadModules(modulesToLoad){
-    var runBlocks = [];
-    forEach(modulesToLoad, function(module) {
-      if (loadedModules.get(module)) return;
-      loadedModules.put(module, true);
-      if (isString(module)) {
-        var moduleFn = angularModule(module);
-        runBlocks = runBlocks.concat(loadModules(moduleFn.requires)).concat(moduleFn._runBlocks);
-
-        try {
-          for(var invokeQueue = moduleFn._invokeQueue, i = 0, ii = invokeQueue.length; i < ii; i++) {
-            var invokeArgs = invokeQueue[i],
-                provider = providerInjector.get(invokeArgs[0]);
-
-            provider[invokeArgs[1]].apply(provider, invokeArgs[2]);
-          }
-        } catch (e) {
-          if (e.message) e.message += ' from ' + module;
-          throw e;
-        }
-      } else if (isFunction(module)) {
-        try {
-          runBlocks.push(providerInjector.invoke(module));
-        } catch (e) {
-          if (e.message) e.message += ' from ' + module;
-          throw e;
-        }
-      } else if (isArray(module)) {
-        try {
-          runBlocks.push(providerInjector.invoke(module));
-        } catch (e) {
-          if (e.message) e.message += ' from ' + String(module[module.length - 1]);
-          throw e;
-        }
-      } else {
-        assertArgFn(module, 'module');
-      }
-    });
-    return runBlocks;
-  }
-
-  ////////////////////////////////////
-  // internal Injector
-  ////////////////////////////////////
-
-  function createInternalInjector(cache, factory) {
-
-    function getService(serviceName) {
-      if (typeof serviceName !== 'string') {
-        throw Error('Service name expected');
-      }
-      if (cache.hasOwnProperty(serviceName)) {
-        if (cache[serviceName] === INSTANTIATING) {
-          throw Error('Circular dependency: ' + path.join(' <- '));
-        }
-        return cache[serviceName];
-      } else {
-        try {
-          path.unshift(serviceName);
-          cache[serviceName] = INSTANTIATING;
-          return cache[serviceName] = factory(serviceName);
-        } finally {
-          path.shift();
-        }
-      }
-    }
-
-    function invoke(fn, self, locals){
+    /**
+     * @ngdoc method
+     * @name AUTO.$injector#invoke
+     * @methodOf AUTO.$injector
+     *
+     * @description
+     * Invoke the method and supply the method arguments from the `$injector`.
+     *
+     * @param {!function} fn The function to invoke. The function arguments come form the function
+     *  annotation.
+     * @param {Object=} self The `this` for the invoked method.
+     * @returns {*} the value returned by the invoked `fn` function.
+     *
+     *
+     * <pre>
+     *   angular.module('myModule').
+     *     value('salutation', 'Hello');
+     *
+     *   var injector = angular.injector(['myModule']);
+     *   injector.invoke(function(salutation) {
+     *     expect(salutation).toEqual('Hello');
+     *   });
+     * </pre>
+     */
+    invoke: function invoke(fn, self){
       var args = [],
           $inject = annotate(fn),
-          length, i,
-          key;
+          i, ii;
 
-      for(i = 0, length = $inject.length; i < length; i++) {
-        key = $inject[i];
-        args.push(
-          locals && locals.hasOwnProperty(key)
-          ? locals[key]
-          : getService(key, path)
-        );
+      for(i = 0, ii = $inject.length; i < ii; i++) {
+        args.push(this.get($inject[i]));
       }
       if (!fn.$inject) {
         // this means that we must be an array.
-        fn = fn[length];
+        fn = fn[ii];
       }
 
 
@@ -576,28 +289,729 @@ function createInjector(modulesToLoad) {
         case  6: return fn(args[0], args[1], args[2], args[3], args[4], args[5]);
         case  7: return fn(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
         case  8: return fn(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
-        case  9: return fn(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
-        case 10: return fn(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9]);
         default: return fn.apply(self, args);
       }
-    }
+    },
 
-    function instantiate(Type, locals) {
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$injector#instantiate
+     * @methodOf AUTO.$injector
+     * @description
+     * Create a new instance of JS type. The method takes a constructor function invokes the new
+     * operator and supplies all of the arguments to the constructor function as specified by the
+     * constructor annotation.
+     *
+     * @param {function} Type Annotated constructor function.
+     * @returns {Object} new instance of `Type`.
+     *
+     *
+     * <pre>
+     *   function Greeter(salutation) {
+     *     this.salutation = salutation;
+     *
+     *     this.greet = function(subject) {
+     *       return this.salutation + ' ' + subject + '!';
+     *     }
+     *   }
+     *
+     *   angular.module('myModule').
+     *     value('salutation', 'Hello');
+     *
+     *   var injector = angular.injector(['myModule']);
+     *   var greeter = injector.instantiate(Greeter);
+     *
+     *   expect(greeter.salutation).toEqual('Hello');
+     *   expect(greeter.greet('World')).toEqual('Hello World!');
+     * </pre>
+     */
+    instantiate: function instantiate(Type) {
       var Constructor = function() {},
-          instance, returnedValue;
+          instance,
+          returnedValue;
 
       Constructor.prototype = (isArray(Type) ? Type[Type.length - 1] : Type).prototype;
       instance = new Constructor();
-      returnedValue = invoke(Type, instance, locals);
+      returnedValue = this.invoke(Type, instance);
 
       return isObject(returnedValue) ? returnedValue : instance;
+    },
+
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$injector#annotate
+     * @methodOf AUTO.$injector
+     *
+     * @description
+     * Returns an array of service names which the function is requesting for injection. This API is
+     * used by the injector to determine which services need to be injected into the function when
+     * the function is invoked. There are three ways in which the function can be annotated with the
+     * needed dependencies.
+     *
+     * # Argument names
+     *
+     * The simplest form is to extract the dependencies from the arguments of the function. This is
+     * done by converting the function into a string using `toString()` method and extracting the
+     * argument names.
+     * <pre>
+     *   // Given
+     *   function MyController($scope, $route) {
+     *     // ...
+     *   }
+     *
+     *   // Then
+     *   expect(injector.annotate(MyController)).toEqual(['$scope', '$route']);
+     * </pre>
+     *
+     * This method does not work with code minfication / obfuscation. For this reason the following
+     * annotation strategies are supported.
+     *
+     * # The `$injector` property
+     *
+     * If a function has an `$inject` property and its value is an array of strings, then the
+     * strings represent names of services to be injected into the function.
+     * <pre>
+     *   // Given
+     *   var MyController = function(obfuscatedScope, obfuscatedRoute) {
+     *     // ...
+     *   }
+     *   // Define function dependencies
+     *   MyController.$inject = ['$scope', '$route'];
+     *
+     *   // Then
+     *   expect(injector.annotate(MyController)).toEqual(['$scope', '$route']);
+     * </pre>
+     *
+     * # The array notation
+     *
+     * It is often desirable to inline Injected functions and that's when setting the `$inject`
+     * property is very inconvenient. In these situations using the array notation to specify the
+     * dependencies in a way that survives minification is a better choice:
+     *
+     * <pre>
+     *   // We wish to write this (not minification / obfuscation safe)
+     *   injector.invoke(function($compile, $rootScope) {
+     *     // ...
+     *   });
+     *
+     *   // We are forced to write break inlining
+     *   var tmpFn = function(obfuscatedCompile, obfuscatedRootScope) {
+     *     // ...
+     *   };
+     *   tmpFn.$inject = ['$compile', '$rootScope'];
+     *   injector.invoke(tempFn);
+     *
+     *   // To better support inline function the inline annotation is supported
+     *   injector.invoke(['$compile', '$rootScope', function(obfCompile, obfRootScope) {
+     *     // ...
+     *   }]);
+     *
+     *   // Therefore
+     *   expect(injector.annotate(
+     *      ['$compile', '$rootScope', function(obfus_$compile, obfus_$rootScope) {}])
+     *    ).toEqual(['$compile', '$rootScope']);
+     * </pre>
+     *
+     * @param {function|Array.<string|Function>} fn Function for which dependent service names need
+     *   to be retrieved as described above.
+     *
+     * @returns {Array.<string>} The names of the services which the function requires.
+     */
+    annotate: annotate,
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$injector#load
+     * @methodOf AUTO.$injector
+     *
+     * @description
+     * Create a child injector from a module definition. It is useful for loading modules (and the
+     * associated code) lazily into the browser.
+     *
+     * @param {Array.<string|Function>} modules A list of module functions or their aliases. See
+     *        {@link angular.module}. The `ng` module must be explicitly added.
+     * @returns {function()} Injector an injector. See {@link AUTO.$injector $injector}.
+     *
+     * <pre>
+     *  angular.module('root').
+     *    value('answer', 42);
+     *
+     *  var rootInjector = angular.inejector(['root']);
+     *  expect(rootInjector.get('answer')).toEqual(42);
+     *
+     *  angular.module('child').
+     *    value('answer', -42).
+     *    value('greeting', 'hello');
+     *
+     *  var childInjector = rootInjector.load(['child']);
+     *  expect(rootInjector.get('answer')).toEqual(42);
+     *  expect(childInjector.get('answer')).toEqual(-42);
+     *  expect(rootInjector.get('greeting')).toEqual('hello');
+     * </pre>
+     */
+    load: function(modules) {
+      var injector = new Injector(this),
+          loadedModules = injector.$$modules,
+          providerInjector = new ProviderInjector(injector);
+
+      forEach(loadModules(modules), function(fn) { injector.invoke(fn || noop); });
+      return injector;
+
+      ///////////////////////////////////////////
+
+      function loadModules(modulesToLoad){
+        var runBlocks = [];
+        forEach(modulesToLoad, function(module) {
+          if (loadedModules.get(module)) return;
+          loadedModules.put(module, true);
+          if (isString(module)) {
+            var moduleFn = angularModule(module);
+
+            runBlocks = runBlocks.concat(loadModules(moduleFn.requires)).concat(moduleFn._runBlocks);
+
+            try {
+              for(var invokeQueue = moduleFn._invokeQueue, i = 0, ii = invokeQueue.length; i < ii; i++) {
+                var invokeArgs = invokeQueue[i],
+                    provider = providerInjector.get(invokeArgs[0]);
+
+                provider[invokeArgs[1]].apply(provider, invokeArgs[2]);
+              }
+            } catch (e) {
+              if (e.message) e.message += ' from ' + module;
+              throw e;
+            }
+          } else if (isFunction(module)) {
+            try {
+              runBlocks.push(providerInjector.invoke(module));
+            } catch (e) {
+              if (e.message) e.message += ' from ' + module;
+              throw e;
+            }
+          } else if (isArray(module)) {
+            try {
+              runBlocks.push(providerInjector.invoke(module));
+            } catch (e) {
+              if (e.message) e.message += ' from ' + String(module[module.length - 1]);
+              throw e;
+            }
+          } else {
+            assertArgFn(module, 'module');
+          }
+        });
+        return runBlocks;
+      }
+    },
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$injector#locals
+     * @methodOf AUTO.$injector
+     *
+     * @description
+     * Create a child injector which contains a set of value constants known as local variables.
+     *
+     * <pre>
+     * </pre>
+     *
+     * @param {Array.<string|Function>} modules A list of module functions or their aliases. See
+     *        {@link angular.module}. The `ng` module must be explicitly added.
+     * @param {function(name)=} resolveFn A function which gets a chance to resolve a service. It
+     *        is called if the locals do not contain the service. Return `undefined` if the
+     *        service can not be resolved and the request should be delegated to the parent injector.
+     * @returns {function()} Injector an injector. See {@link AUTO.$injector $injector}.
+     *
+     * <pre>
+     *  angular.module('root').
+     *    value('answer', 42);
+     *
+     *  var rootInjector = angular.inejector(['root']);
+     *  expect(rootInjector.get('answer')).toEqual(42);
+     *
+     *  var childInjector = rootInjector.locals({
+     *    answer: -42,
+     *    greeting: 'hello'
+     *  });
+     *  expect(rootInjector.get('answer')).toEqual(42);
+     *  expect(childInjector.get('answer')).toEqual(-42);
+     *  expect(rootInjector.get('greeting')).toEqual('hello');
+     * </pre>
+     */
+    locals: function(locals, resolveFn) {
+      return new LocalsInjector(this, locals, resolveFn);
+    },
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$injector#limit
+     * @methodOf AUTO.$injector
+     *
+     * @description
+     * Create a child injector which automatically prefixes all calls to {@link AUTO.$injector#get
+     * get} with a prefix.
+     *
+     * @param {Object} locals A map of injectable instances.
+     * @returns {function()} Injector an injector. See {@link AUTO.$injector $injector}.
+     *
+     * <pre>
+     *  angular.module('root').
+     *    value('answer', 42);
+     *
+     *  var rootInjector = angular.inejector(['root']);
+     *  expect(rootInjector.get('answer')).toEqual(42);
+     *
+     *  var childInjector = rootInjector.locals({
+     *    answer: -42,
+     *    greeting: 'hello'
+     *  });
+     *  expect(rootInjector.get('answer')).toEqual(42);
+     *  expect(childInjector.get('answer')).toEqual(-42);
+     *  expect(rootInjector.get('greeting')).toEqual('hello');
+     * </pre>
+     */
+    limit: function(prefix) {
+      return new LimitInjector(this, prefix);
+    }
+  };
+
+  function LocalsInjector(parent, locals, resolveFn) {
+    assertArg(locals);
+    this.$$parent = parent;
+    this.$$locals = locals;
+    this.$$resolve = resolveFn;
+
+    locals.$injector = this;
+  }
+
+  injectorMethods(LocalsInjector.prototype, {
+    get: function(name) {
+      var locals = this.$$locals,
+          resolve,
+          service;
+
+      if (locals.hasOwnProperty(name)) {
+        return locals[name];
+      } else if ((resolve = this.$$resolve) && ((service = resolve(name, this)) != undefined) ) {
+        return service;
+      } else {
+        return this.$$parent.get(name);
+      }
+    }
+  });
+
+
+  function LimitInjector(parent, prefix) {
+    this.$$parent = parent;
+    this.$$prefix = prefix;
+  }
+
+  injectorMethods(LimitInjector.prototype, {
+    get: function(name) {
+      return this.$$parent.get(this.$$prefix + name);
+    },
+    enumerate: function() {
+      var list = [],
+          prefix = this.$$prefix;
+
+      forEach(this.$$parent.enumerate(), function(name) {
+        if (name.indexOf(prefix) == 0) {
+          list.push(name.substr(prefix.length));
+        }
+      });
+      return list;
+    }
+  });
+
+
+  function TerminalInjector() {
+    this.$$providers = {};
+    this.$$instances = {};
+    this.$$modules = new HashMap();
+  }
+
+  TerminalInjector.prototype = {
+    load: Injector.prototype.load,
+    enumerate: function() {
+      return [];
+    },
+    get: function(name) {
+      pathPush(name);
+      try {
+        throw Error('Unknown service: ' + path.join(' <- '));
+      } finally {
+        pathPop();
+      }
+    }
+  };
+
+  /**
+   * @ngdoc overview
+   * @name AUTO
+   * @description
+   *
+   * Implicit module which gets automatically added to each {@link AUTO.$injector $injector}.
+   */
+
+  /**
+   * @ngdoc object
+   * @name AUTO.$provide
+   *
+   * @description
+   *
+   * Use `$provide` to register new providers with the `$injector`. The providers are the factories
+   * for the service instance. The providers share the same name as the instance they create with
+   * the `Provider` suffixed to them.
+   *
+   * A provider is an object with a `$get()` method. The injector calls the `$get` method to create
+   * a new instance of a service. The provider can have additional methods which can allow for
+   * configuration of the provider.
+   *
+   * <pre>
+   *   function GreetProvider() {
+   *     var salutation = 'Hello';
+   *
+   *     this.salutation = function(text) {
+   *       salutation = text;
+   *     };
+   *
+   *     this.$get = function() {
+   *       return function (name) {
+   *         return salutation + ' ' + name + '!';
+   *       };
+   *     };
+   *   }
+   *
+   *   describe('Greeter', function(){
+   *
+   *     beforeEach(module(function($provide) {
+   *       $provide.provider('greet', GreetProvider);
+   *     });
+   *
+   *     it('should greet', inject(function(greet) {
+   *       expect(greet('angular')).toEqual('Hello angular!');
+   *     }));
+   *
+   *     it('should allow configuration of salutation', function() {
+   *       module(function(greetProvider) {
+   *         greetProvider.salutation('Ahoj');
+   *       });
+   *       inject(function(greet) {
+   *         expect(greet('angular')).toEqual('Ahoj angular!');
+   *       });
+   *     )};
+   *
+   *   });
+   * </pre>
+   *
+   * # Private services
+   *
+   * Creation of child injectors creates a tree structure of injectors. This means that a service is
+   * tied to a specific injector and can never access services on child injector, since the child
+   * injector can be garbage collected during application lifetime we have to ensure that there are
+   * no references from the parent injector to the child injector.
+   *
+   * There are cases where it is desirable to access child services from parent injector. For
+   * example a child injector can define more directives, but the compiler service on the parent
+   * injector would not be able to see them. A private services addresses this issue.
+   *
+   * A private service is a service which is only visible on a given injector. Child injectors can
+   * not see the instance, only the provider. The child injector uses the provider to create a new
+   * instance of the service on its self. (Provider comes from parent, but a singleton instance is
+   * saved to child injector.) This allows the provider to ask for services in the child injector,
+   * but be properly garbage collected when a child injector goes away.
+   *
+   * <pre>
+   *   angular.module('root',[]).
+   *     factory('greeting', factory(salutation) {
+   *       return salutation + 'world!';
+   *     }, true);
+   *     value('salutation', 'Hello');
+   *
+   *   var rootInjector = angular.injector(['root']);
+   *   expect(rootInjector.get('greeting')).toEqual('Hello world!');
+   *
+   *   angular.module('child', []).
+   *     value('salutation', 'Ahoj');
+   *
+   *   var childInjector = rootInjector(['child']);
+   *   expect(rootInjector.get('greeting')).toEqual('Hello world!');
+   *   expect(childInjector.get('greeting')).toEqual('Ahoj world!');
+   * </pre>
+   */
+  function ProviderInjector(instanceInjector) {
+    var providerInjector = this,
+        providers = instanceInjector.$$providers,
+        instances = instanceInjector.$$instances,
+        pInstances = {
+          $injector: [this],
+          $provide: [{
+            provider: supportObject(provider),
+            factory: supportObject(factory),
+            service: supportObject(service),
+            value: supportObject(value),
+            constant: supportObject(constant),
+            decorator: decorator
+          }]
+        },
+        parent = new TerminalInjector();
+
+    this.get = function(name) {
+      var instance = pInstances[name] ||
+                     instances[name] ||
+                     providers[name];
+
+      if (instance instanceof Array) return instance[0];
+
+      return parent.get(name);
     }
 
-    return {
-      invoke: invoke,
-      instantiate: instantiate,
-      get: getService,
-      annotate: annotate
-    };
+    function supportObject(delegate) {
+      return function(key, value, isPrivate) {
+        if (isObject(key)) {
+          forEach(key, reverseParams(delegate));
+        } else {
+          return delegate(key, value, isPrivate);
+        }
+      };
+    }
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$provide#provider
+     * @methodOf AUTO.$provide
+     * @description
+     *
+     * Register a provider for a service. The providers can be retrieved in configuration and can
+     * have additional configuration methods.
+     *
+     * @param {string} name The name of the instance. NOTE: the provider will be available under
+     *        `name + 'Provider'` key.
+     * @param {(Object|function())} provider If the provider is:
+     *
+     *   - `Object`: then it should have a `$get` method. The `$get` method will be invoked using
+     *               {@link AUTO.$injector#invoke $injector.invoke()} when an instance needs to be
+     *               created. Optionally it can also hove `$private` property set to true.
+     *   - `Constructor`: a new instance of the provider will be created using
+     *               {@link AUTO.$injector#instantiate $injector.instantiate()}, then treated as
+     *               `object`.
+     *
+     * @returns {Object} registered provider instance
+     *
+     * <pre>
+     *   function Greeting() {
+     *     this.salutation = 'Hello';
+     *
+     *     this.$get = function(subject) {
+     *       return this.salutation + ' ' + subject + '!';
+     *     }
+     *   }
+     *
+     *   angular.module('myModule').
+     *     value('subject', 'World').
+     *     provider('greeting', Greeting).
+     *     config(function(greetingProvider) {
+     *        expect(greetingProvider.salutation).toEqual('Hello');
+     *
+     *        greetingProvider.salutation = 'Ahoj';
+     *     });
+     *
+     *   var injector = angular.injector(['myModule']);
+     *   expect(injector.get('greeting')).toEqual('Ahoj World!');
+     * </pre>
+     */
+    function provider(name, provider_) {
+      if (isFunction(provider_)) {
+        provider_ = providerInjector.instantiate(provider_);
+      }
+      if (!provider_.$get) {
+        throw Error('Provider ' + name + ' must define $get factory method.');
+      }
+      providers[name + PROVIDER_SUFFIX] = [provider_];
+      return provider_;
+    }
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$provide#factory
+     * @methodOf AUTO.$provide
+     * @description
+     *
+     * A short hand for configuring services if only `$get` method is required.
+     *
+     * @param {string|Object<string,Function>} name The name of the instance or a hashmap of name
+     *   to factory functions for bulk registration.
+     * @param {function()} $getFn The $getFn for the instance creation. Internally this is a short hand for
+     * `$provide.provider(name, {$get: $getFn})`.
+     * @param {boolean=} [isPrivate=false] A private service is only visible to the current
+     *   injector. A child injector can not see the instance, and instead will make its own
+     *   instance.
+     * @returns {Object} registered provider instance
+     *
+     * <pre>
+     *   angular.module('myModule').
+     *     value('salutation', 'Hello').
+     *     value('subject', 'World').
+     *     factory('greeting', function(salutation, subject) {
+     *       return salutation + ' ' + subject + '!';
+     *     });
+     *
+     *   var injector = angular.injector(['myModule']);
+     *   expect(injector.get('greeting')).toEqual('Hello World!');
+     * </pre>
+     */
+    function factory(name, factoryFn, isPrivate) {
+      return provider(name, { $get: factoryFn, $private: isPrivate });
+    }
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$provide#service
+     * @methodOf AUTO.$provide
+     * @description
+     *
+     * Register a class as a way of creating an instance. The class constructor will be invoked
+     * using {@link AUTO.$injector#instantiate instantiate} method.
+     *
+     * @param {string|Object<string,Function>} name The name of the instance or a hashmap of name
+     *   to contstructor functions for bulk registration.
+     * @param {Function} constructor A class (constructor function) that will be instantiated.
+     * @param {boolean=} [isPrivate=false] A private service is only visible to the current
+     *   injector. A child injector can not see the instance, and instead will make its own
+     *   instance.
+     *
+     * @returns {Object} registered provider instance
+     *
+     * <pre>
+     *   function Engine(type) {
+     *    this.type = type;
+     *   }
+     *   function Car(engine) {
+     *    this.engine = engine;
+     *   }
+     *
+     *   angular.module('myModule').
+     *     value('type', 'v8').
+     *     service('car', Car).
+     *     service('engine', Engine);
+     *
+     *   var injector = angular.injector(['myModule']);
+     *   var car = injector.get('car');
+     *
+     *   expect(typeof car).toBe(Car);
+     *   expect(typeof car.engine).toBe(Engine);
+     *   expect(car.engine.type).toEqual('v8');
+     * </pre>
+     */
+    function service(name, constructor, isPrivate) {
+      return factory(name, ['$injector', function($injector) {
+        return $injector.instantiate(constructor);
+      }], isPrivate);
+    }
+
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$provide#value
+     * @methodOf AUTO.$provide
+     * @description
+     *
+     * A simplest form of injection where the value is always constant.
+     *
+     * @param {string|Object<string,*>} name The name of the instance or a hashmap of name
+     *   to value for bulk registration.
+     * @param {*} value The value.
+     * @returns {Object} registered provider instance
+     *
+     * <pre>
+     *   angular.module('myModule').
+     *     value('answer', 42);
+     *   var injector = angular.injector(['myModule']);
+     *   expect(injector.get('answer')).toEqual(42);
+     * </pre>
+     */
+    function value(name, value) { return factory(name, valueFn(value)); }
+
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$provide#constant
+     * @methodOf AUTO.$provide
+     * @description
+     *
+     * A constant value, but unlike {@link AUTO.$provide#value value} it can be injected
+     * into configuration function (oy other modules) and providers. Constants are not
+     * interceptable by {@link AUTO.$provide#decorator decorator}.
+     *
+     * @param {string} name The name of the constant.
+     * @param {*} value The constant value.
+     * @returns {Object} registered instance
+     *
+     * <pre>
+     *   angular.module('myModule').
+     *     constant('answer', 42).
+     *     config(function($provide, answer) {
+     *       // only constants can be injected into config functions.
+     *       // Services instances (value, factory, provider) can not.
+     *     });
+     *   var injector = angular.injector(['myModule']);
+     *   expect(injector.get('answer')).toEqual(42);
+     * </pre>
+     */
+    function constant(name, value) {
+      providers[name] = [value];
+      instances[name] = [value];
+    }
+
+
+    /**
+     * @ngdoc method
+     * @name AUTO.$provide#decorator
+     * @methodOf AUTO.$provide
+     * @description
+     *
+     * Decoration of service, allows the decorator to intercept the service instance creation. The
+     * returned instance may be the original instance, or a new instance which delegates to the
+     * original instance.
+     *
+     * @param {string} name The name of the service to decorate.
+     * @param {function()} decorator This function will be invoked when the service needs to be
+     *    instanciated. The function is called using the {@link AUTO.$injector#invoke
+     *    injector.invoke} method and is therefore fully injectable. Local injection arguments:
+     *
+     *    * `$delegate` - The original service instance, which can be monkey patched, configured,
+     *      decorated or delegated to.
+     * @returns {*} nothing.
+     *
+     *
+     * <pre>
+     *   angular.module('myModule').
+     *     config(function($provide) {
+     *      $provide.decorate('$rootScope', function($delegate) {
+     *        var $rootScope = $delegate;
+     *
+     *        $rootScope.mark = 'marked';
+     *        return $rootScope;
+     *      });
+     *     });
+     *
+     *   var injector = angular.injector(['myModule']);
+     *   var $rootScope = injector.get('$rootScope');
+     *   expect($rootScope.mark).toEqual('marked');
+     * </pre>
+     */
+    function decorator(serviceName, decorFn) {
+      var origProvider = providerInjector.get(serviceName + PROVIDER_SUFFIX),
+          orig$get = origProvider.$get;
+
+      origProvider.$get = function() {
+        var origInstance = instanceInjector.invoke(orig$get, origProvider);
+        return instanceInjector.locals({$delegate: origInstance}).invoke(decorFn);
+      };
+    }
   }
+
+  injectorMethods(ProviderInjector.prototype)
+
+  return new TerminalInjector().load(modulesToLoad)
 }

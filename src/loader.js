@@ -27,6 +27,15 @@ function setupModuleLoader(window) {
      * modules (angular core or 3rd party) that should be available to an application must be
      * registered using this mechanism.
      *
+     * Modules provide configuration information for service creation view the injector. The
+     * configuration is broken down into two phases. A service configuration and injector creation.
+     *
+     * 1. First the config phase is executed. At this point all of the providers are registered,
+     *    but no instances are yet created. The configuration phase also allows the retrieval of
+     *    existing providers so that they can be further configured. At this point it is guranteed
+     *    that no service instance is created.
+     * 2. Second, the injector is created. Once the injector instance is created it can be used to
+     *    retrieve service instances.
      *
      * # Module
      *

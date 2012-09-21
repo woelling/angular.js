@@ -222,7 +222,7 @@ describe('parser', function() {
 
         expect(function() {
           scope.$eval("1|nonexistent");
-        }).toThrow(new Error("Unknown provider: nonexistentFilterProvider <- nonexistentFilter"));
+        }).toThrow(new Error("Unknown service: nonexistentFilter"));
 
         scope.offset =  3;
         expect(scope.$eval("'abcd'|substring:1:offset")).toEqual("bc");

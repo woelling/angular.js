@@ -66,7 +66,7 @@ function $ControllerProvider() {
         assertArgFn(constructor, name, true);
       }
 
-      return $injector.instantiate(constructor, locals);
+      return (locals ? $injector.locals(locals) : $injector).instantiate(constructor);
     };
   }];
 }

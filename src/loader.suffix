@@ -7,6 +7,9 @@
  *   requires: !Array.<string>,
  *   invokeQueue: !Array.<Array.<*>>,
  *
+ *   config: function(Function):angular.Module,
+ *   run: function(Function):angular.Module,
+ *
  *   service: function(string, Function):angular.Module,
  *   factory: function(string, Function):angular.Module,
  *   value: function(string, *):angular.Module,

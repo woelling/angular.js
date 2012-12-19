@@ -1,8 +1,9 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.Directive');
+goog.provide('angular.core.DirectiveType');
 goog.provide('angular.core.AccessorFactory');
 goog.provide('angular.core.Accessor');
 
@@ -16,6 +17,14 @@ angular.core.Directive = function() {};
  */
 angular.core.Directive.prototype.attach = function(scope){};
 
+
+/**
+ * @typedef {{
+ *   $priority: number,
+ *   $transclude: string
+ * }}
+ */
+angular.core.DirectiveType,
 
 
 /**

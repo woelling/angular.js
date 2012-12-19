@@ -1,10 +1,10 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$q');
 
-angular.coreModule.provider('$q', $QProvider);
+angular.core.module.provider('$q', $QProvider);
 
 /**
  * @ngdoc service

@@ -1,7 +1,7 @@
 'use strict';
 
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$routeParams');
 goog.require('angular.core.$rootScope');
 goog.require('angular.core.$location');
@@ -11,7 +11,7 @@ goog.require('angular.core.$templateCache');
 
 goog.provide('angular.core.$route');
 
-angular.coreModule.provider('$route', $RouteProvider);
+angular.core.module.provider('$route', $RouteProvider);
 
 /**
  * @ngdoc object

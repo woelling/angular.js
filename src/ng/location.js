@@ -1,10 +1,10 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$location');
 
-angular.coreModule.provider('$location', $LocationProvider);
+angular.core.module.provider('$location', $LocationProvider);
 
 
 var URL_MATCH = /^([^:]+):\/\/(\w+:{0,1}\w*@)?([\w\.-]*)(:([0-9]+))?(\/[^\?#]*)?(\?([^#]*))?(#(.*))?$/,

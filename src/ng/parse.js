@@ -1,6 +1,6 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$parse');
 
@@ -875,7 +875,7 @@ function getterFn(path, csp) {
  *    allows one to set values to expressions.
  *
  */
-angular.coreModule.provider('$parse', function $ParseProvider() {
+angular.core.module.provider('$parse', function $ParseProvider() {
   var cache = {};
   this.$get = ['$filter', '$sniffer', function($filter, $sniffer) {
     return function(exp) {

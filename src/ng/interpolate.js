@@ -1,6 +1,6 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$parse');
 goog.require('angular.core.$exceptionHandler');
 
@@ -16,7 +16,7 @@ goog.provide('angular.core.$interpolate');
  * Used for configuring the interpolation markup. Defaults to `{{` and `}}`.
  * @constructor
  */
-angular.coreModule.provider('$interpolate', function $InterpolateProvider() {
+angular.core.module.provider('$interpolate', function $InterpolateProvider() {
   var startSymbol = '{{';
   var endSymbol = '}}';
 

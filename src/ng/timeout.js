@@ -1,10 +1,10 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$timeout');
 
-angular.coreModule.provider('$timeout', function $TimeoutProvider() {
+angular.core.module.provider('$timeout', function $TimeoutProvider() {
   this.$get = ['$rootScope', '$browser', '$q', '$exceptionHandler',
        function($rootScope,   $browser,   $q,   $exceptionHandler) {
     var deferreds = {};

@@ -1346,7 +1346,7 @@ function MockXhr() {
  */
 angular.mock.$RootElementProvider = function() {
   this.$get = function() {
-    return 'TODO: IMPLEMENT';
+    return angular.element('<div ng-app></div>');
   }
 };
 

@@ -1,6 +1,7 @@
 'use strict';
 
 goog.provide('angular.core.Selector');
+goog.provide('angular.core.Select');
 
 /**
  * @typedef { function(Node):Array.<angular.core.DirectiveInfo> }
@@ -8,7 +9,15 @@ goog.provide('angular.core.Selector');
 angular.core.Select;
 
 /**
- * @typedef {Object}
+ * @typedef {{
+ *   Directive: angular.core.DirectiveType,
+ *   selector: string,
+ *   element: Node,
+ *   pseudoElement: boolean,
+ *   name: string,
+ *   value: string,
+ *   childNodes: Array.<Node>
+ * }}
  */
 angular.core.DirectiveInfo;
 
@@ -64,6 +73,14 @@ angular.core.Selector = function (selectors, startWith) {
     }
   });
 
+  /**
+   * @param {Array.<angular.core.DirectiveInfo>} directives
+   * @param {Node} element
+   * @param {string} selector
+   * @param {string=} name
+   * @param {string=} value
+   * @param {boolean=} pseudoElement
+   */
   function addDirective(directives, element, selector, name, value, pseudoElement) {
     directives.push({
       selector: selector,
@@ -75,6 +92,14 @@ angular.core.Selector = function (selectors, startWith) {
     });
   }
 
+  /**
+   * @param {Array.<angular.core.DirectiveInfo>} directives
+   * @param {Node} element
+   * @param {Object.<string>} valueMap
+   * @param {string=} name
+   * @param {string=} value
+   * @param {boolean=} pseudoElement
+   */
   function addAttrDirective(directives, element, valueMap, name, value, pseudoElement) {
     if (valueMap.hasOwnProperty('')) {
       addDirective(directives, element, valueMap[''], name, value, pseudoElement);

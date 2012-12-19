@@ -1,12 +1,12 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$window');
 goog.require('angular.core.$browser');
 
 goog.provide('angular.core.$httpBackend');
 
-angular.coreModule.provider('$httpBackend', $HttpBackendProvider);
+angular.core.module.provider('$httpBackend', $HttpBackendProvider);
 
 
 var XHR = window.XMLHttpRequest || function() {

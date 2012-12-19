@@ -2,7 +2,6 @@ angularFiles = {
   'angularSrc': [
     'lib/closure-compiler/base.js',
     'src/Angular.js',
-    'src/Angular-old.js',
     'src/module.js',
     'src/AngularPublic.js',
     'src/jqLite.js',
@@ -41,8 +40,8 @@ angularFiles = {
     'src/core/service/Anchor.js',
     'src/core/service/block.js',
     'src/core/service/template.js',
-    'src/core/service/compile.js',
     'src/core/service/selector.js',
+    'src/core/service/compile.js',
     'src/core/directive/directives.js',
     'src/core/directive/inline.js',
 

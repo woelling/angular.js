@@ -220,6 +220,8 @@ describe('parser', function() {
           return input.substring(start, end);
         }));
 
+        $filterProvider.register('uppercase', uppercaseFilter);
+
         expect(function() {
           scope.$eval("1|nonexistent");
         }).toThrow(new Error("Unknown service: nonexistentFilter"));
@@ -393,6 +395,7 @@ describe('parser', function() {
       });
 
       it('should evaluate grouped filters', function() {
+        $filterProvider.register('lowercase', lowercaseFilter);
         scope.name = 'MISKO';
         expect(scope.$eval('n = (name|lowercase)')).toEqual('misko');
         expect(scope.$eval('n')).toEqual('misko');

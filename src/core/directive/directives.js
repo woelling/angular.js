@@ -2,12 +2,12 @@
 
 goog.provide('angular.core.directives');
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.Scope');
 goog.require('angular.core.$Anchor');
 goog.require('angular.core.Directive');
 
-angular.coreModule.value({
+angular.core.module.value({
   'directive:[bind]': ['$text', '$value',
     /**
      * @param textSetter

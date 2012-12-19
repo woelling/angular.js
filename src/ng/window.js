@@ -1,6 +1,6 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$window');
 /**
@@ -27,4 +27,4 @@ goog.provide('angular.core.$window');
      </doc:scenario>
    </doc:example>
  */
-angular.coreModule.value('$window', window);
+angular.core.module.value('$window', window);

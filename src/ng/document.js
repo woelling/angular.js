@@ -1,10 +1,10 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$document');
 
-angular.coreModule.provider('$document', $DocumentProvider);
+angular.core.module.provider('$document', $DocumentProvider);
 
 /**
  * @ngdoc object

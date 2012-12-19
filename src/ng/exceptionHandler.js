@@ -1,11 +1,11 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$log');
 
 goog.provide('angular.core.$exceptionHandler');
 
-angular.coreModule.provider('$exceptionHandler', $ExceptionHandlerProvider);
+angular.core.module.provider('$exceptionHandler', $ExceptionHandlerProvider);
 
 /**
  * @ngdoc function

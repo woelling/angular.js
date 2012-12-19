@@ -1,11 +1,11 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.Anchor');
 
 goog.provide('angular.core.$Anchor');
 
-angular.coreModule.factory('$Anchor', ['$rootScope', function($rootScope) {
+angular.core.module.factory('$Anchor', ['$rootScope', function($rootScope) {
   /**
    *
    * @param elements

@@ -1,6 +1,6 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$httpBackend');
 goog.require('angular.core.$browser');
 goog.require('angular.core.$cacheFactory');
@@ -9,7 +9,7 @@ goog.require('angular.core.$q');
 
 goog.provide('angular.core.$http');
 
-angular.coreModule.provider('$http', $HttpProvider);
+angular.core.module.provider('$http', $HttpProvider);
 /**
  * Parse headers into key value object
  *

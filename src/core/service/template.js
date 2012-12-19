@@ -1,13 +1,13 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$rootScope');
 goog.require('angular.core.$exceptionHandler');
 goog.require('angular.core.$Block');
 
 goog.provide('angular.core.$template');
 
-angular.coreModule.factory('$template', ['$rootElement', '$injector', '$exceptionHandler', '$Block',
+angular.core.module.factory('$template', ['$rootElement', '$injector', '$exceptionHandler', '$Block',
   function($rootElements,   $injector,   $exceptionHandler, Block) {
     return function template(templateSelector, directiveDefs) {
       if (!directiveDefs) directiveDefs = EMPTY_ARRAY;

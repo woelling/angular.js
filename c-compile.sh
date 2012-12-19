@@ -17,11 +17,13 @@ FILES="src/Angular.js \
        src/core/Block.js \
        src/core/Directive.js \
        src/core/Scope.js \
+       src/core/directive/inline.js \
+       src/core/directive/directives.js \
        src/core/service/anchor.js \
        src/core/service/block.js \
+       src/core/service/selector.js \
        src/core/service/compile.js \
        src/core/service/template.js \
-       src/core/directive/directives.js \
        src/export.js \
        "
 

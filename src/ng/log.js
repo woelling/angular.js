@@ -1,11 +1,11 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$window');
 
 goog.provide('angular.core.$log');
 
-angular.coreModule.provider('$log', $LogProvider);
+angular.core.module.provider('$log', $LogProvider);
 
 /**
  * @ngdoc object

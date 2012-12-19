@@ -1,6 +1,6 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.Block');
 goog.require('angular.core.$Anchor');
 goog.require('angular.injector');
@@ -114,7 +114,7 @@ angular.core.Block.BLOCK_DYNAMIC_SERVICES = {
 
 angular.core.Block.emptyInjector = createInjector();
 
-angular.coreModule.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiveInjector', '$injector',
+angular.core.module.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiveInjector', '$injector',
   function($exceptionHandler,   $Anchor, $directiveInjector, $injector) {
     function Block(elements, directiveDefs, blocksForAnchors) {
       this.elements = elements;
@@ -137,8 +137,7 @@ angular.coreModule.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiv
             locals = {
               '$block': block,
               '$element': element,
-              '$value': undefined,
-              '$name': undefined
+              '$value': undefined
             },
             elementInjector = angular.core.Block.emptyInjector.locals(locals, function(name, elementInjector) {
               ASSERT(name);

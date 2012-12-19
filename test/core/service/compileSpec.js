@@ -137,7 +137,7 @@ describe('dte.compiler', function() {
   });
 
 
-  it('should allow multiple transclusions on one element', function() {
+  it('should allow multiple transclusions on one element and in correct order.', function() {
     module(function($provide) {
       var One = function($anchor) {
         this.attach = function(scope) {
@@ -150,6 +150,7 @@ describe('dte.compiler', function() {
         }
       };
       One.$transclude = '.';
+      One.$priority = 100;
 
       var Two = function($anchor) {
         this.attach = function(scope) {
@@ -167,7 +168,7 @@ describe('dte.compiler', function() {
     });
     inject(function($compile) {
       var element = angular.element(
-          '<div><span one two>{{test}}</span></div>');
+          '<div><span two one>{{test}}</span></div>');
       var block = $compile(element)(element);
 
       $rootScope.test = 0;

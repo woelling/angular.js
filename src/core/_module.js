@@ -3,9 +3,9 @@
 goog.require('angular');
 goog.require('angular.module');
 
-goog.provide('angular.coreModule');
+goog.provide('angular.core.module');
 
-angular.coreModule = angular.module('core', []).
+angular.core.module = angular.module('core', []).
     value({
       '$filter': noop,
       '$sniffer': {}

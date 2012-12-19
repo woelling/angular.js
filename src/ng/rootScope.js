@@ -1,6 +1,6 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$exceptionHandler');
 goog.require('angular.core.$parse');
 goog.require('angular.core.Scope');
@@ -65,7 +65,7 @@ goog.provide('angular.core.$rootScope');
  * All other scopes are child scopes of the root scope. Scopes provide mechanism for watching the model and provide
  * event processing life-cycle. See {@link guide/scope developer guide on scopes}.
  */
-angular.coreModule.provider('$rootScope', function $RootScopeProvider(){
+angular.core.module.provider('$rootScope', function $RootScopeProvider(){
   /** @type {number} */
   var ttl = 10;
 

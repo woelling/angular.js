@@ -1,10 +1,10 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$filter');
 
-angular.coreModule.provider('$filter', $FilterProvider);
+angular.core.module.provider('$filter', $FilterProvider);
 
 
 /**

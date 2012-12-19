@@ -8,6 +8,14 @@
  */
 _jQuery.event.special.change = undefined;
 
+//TODO(misko): temporory hack until we get rid of jQuery in DTE
+function bindJQuery() {
+  window.jqLite = _jQuery;
+  window.$ = _jQuery;
+  window.jQuery = _jQuery;
+  angular.element = _jQuery;
+}
+
 bindJQuery();
 var recursionDepth;
 beforeEach(function() {

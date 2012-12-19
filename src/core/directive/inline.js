@@ -1,11 +1,11 @@
 'use strict';
 
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.directive.splitAttrDirective');
 
-angular.coreModule.directive(':contains(/{{.*}}/)', [
+angular.core.module.directive(':contains(/{{.*}}/)', [
   '$service_$interpolate', '$value', '$text',
   function($interpolate, $value, $text) {
     $text('');
@@ -15,7 +15,7 @@ angular.coreModule.directive(':contains(/{{.*}}/)', [
     };
   }]);
 
-angular.coreModule.directive('[*=/{{.*}}/]', [
+angular.core.module.directive('[*=/{{.*}}/]', [
   '$service_$interpolate', '$value', '$attr',
   function($interpolate, $nameValue, $attr) {
     var nameValue = angular.core.directive.splitAttrDirective($nameValue),

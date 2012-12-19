@@ -1,12 +1,12 @@
 'use strict';
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$cacheFactory');
 goog.provide('angular.core.$templateCache');
 
-angular.coreModule.provider('$cacheFactory', $CacheFactoryProvider);
-angular.coreModule.provider('$templateCache', $TemplateCacheProvider);
+angular.core.module.provider('$cacheFactory', $CacheFactoryProvider);
+angular.core.module.provider('$templateCache', $TemplateCacheProvider);
 
 /**
  * @ngdoc object

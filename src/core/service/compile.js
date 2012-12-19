@@ -2,11 +2,12 @@
 
 goog.provide('angular.core.$compile');
 
-goog.require('angular.coreModule');
+goog.require('angular.core.module');
 goog.require('angular.core.$template');
 goog.require('angular.core.$interpolate');
+goog.require('angular.core.Select');
 
-angular.coreModule.factory('$compile', ['$template', '$directiveInjector',
+angular.core.module.factory('$compile', ['$template', '$directiveInjector',
   function($template, $directiveInjector) {
     /**
      *
@@ -45,7 +46,7 @@ angular.coreModule.factory('$compile', ['$template', '$directiveInjector',
         }
 
         // Sort
-        // TODO
+        directiveInfos.sort(priorityComparator);
 
         // process the directives
         for(var k = 0, kk = directiveInfos.length; k < kk; k++) {
@@ -115,6 +116,19 @@ angular.coreModule.factory('$compile', ['$template', '$directiveInjector',
       }
     }
 
+    /**
+     * @param {angular.core.DirectiveInfo} a
+     * @param {angular.core.DirectiveInfo} b
+     * @return {number}
+     */
+    function priorityComparator(a, b) {
+      var aPriority = a.Directive.$priority || 0,
+          bPriority = b.Directive.$priority || 0;
+
+      return aPriority == bPriority ? 0 : (aPriority < bPriority ? 1 : -1);
+    }
+
+
     function compileTransclusions(selector, childNodes) {
       if (selector == '.') {
         return compile(childNodes);
@@ -156,7 +170,7 @@ angular.coreModule.factory('$compile', ['$template', '$directiveInjector',
      * Decorate the node with a unique selector id for later reference.
      *
      * @param {Node} node
-     * @param {number} index
+     * @param {number=} index
      */
     function markNode(node, index) {
       var parentNode,
@@ -166,13 +180,16 @@ angular.coreModule.factory('$compile', ['$template', '$directiveInjector',
 
       if (node.nodeType == 1 /* Element */) {
         // we are an element, just mark it.
-        className = node.className;
+
+        var element = /** @type Element */node;
+
+        className = element.className;
         match = className && className.match(ID_REGEXP);
         if (match) {
           id = match[1];
         } else {
           id = '__ng_' + nextUid();
-          node.className = className ? className + ' ' + id : id;
+          element.className = className ? className + ' ' + id : id;
         }
         id = '.' + id;
       } else if (parentNode = node.parentNode) {

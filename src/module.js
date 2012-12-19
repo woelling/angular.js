@@ -1,5 +1,9 @@
 'use strict';
 
+goog.provide('angular.module');
+
+goog.require('angular');
+
 /**
  *
  * @param {string} name
@@ -13,12 +17,14 @@ angular.Module = function(name, dependencies) {
   this.configures_ = [];
   this.values_ = [];
   this.factories_ = [];
+  this.services_ = [];
   this.providers_ = [];
   this.runBlocks_ = [];
 
   this.$$configure = function($provide, $injector) {
     forEach(self.values_, invoke($provide, $provide.value));
     forEach(self.factories_, invoke($provide, $provide.factory));
+    forEach(self.services_, invoke($provide, $provide.service));
     forEach(self.providers_, invoke($provide, $provide.provider));
     forEach(self.configures_, function(args) {
       var fn = $injector.invoke(args[0], args[1]);
@@ -77,6 +83,17 @@ angular.Module.prototype.value = function(name, value) {
  */
 angular.Module.prototype.factory = function(name, factory, isPrivate) {
   this.factories_.push(arguments);
+  return this;
+};
+
+/**
+ * @param {string|Object} name
+ * @param {angular.Injectable=} Type
+ * @param {boolean=} isPrivate
+ * @return {angular.Module}
+ */
+angular.Module.prototype.service = function(name, Type, isPrivate) {
+  this.services_.push(arguments);
   return this;
 };
 

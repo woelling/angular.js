@@ -52,12 +52,12 @@ angular.mock.$Browser = function() {
 
   self.onUrlChange = function(listener) {
     self.pollFns.push(
-      function() {
-        if (self.$$lastUrl != self.$$url) {
-          self.$$lastUrl = self.$$url;
-          listener(self.$$url);
+        function() {
+          if (self.$$lastUrl != self.$$url) {
+            self.$$lastUrl = self.$$url;
+            listener(self.$$url);
+          }
         }
-      }
     );
 
     return listener;
@@ -134,13 +134,13 @@ angular.mock.$Browser = function() {
 };
 angular.mock.$Browser.prototype = {
 
-/**
-  * @name ngMock.$browser#poll
-  * @methodOf ngMock.$browser
-  *
-  * @description
-  * run all fns in pollFns
-  */
+  /**
+   * @name ngMock.$browser#poll
+   * @methodOf ngMock.$browser
+   *
+   * @description
+   * run all fns in pollFns
+   */
   poll: function poll() {
     angular.forEach(this.pollFns, function(pollFn){
       pollFn();
@@ -350,7 +350,7 @@ angular.mock.$LogProvider = function() {
       });
       if (errors.length) {
         errors.unshift("Expected $log to be empty! Either a message was logged unexpectedly, or an expected " +
-          "log message was not checked and removed:");
+            "log message was not checked and removed:");
         errors.push('');
         throw new Error(errors.join('\n---------\n'));
       }
@@ -529,22 +529,22 @@ angular.mock.$LogProvider = function() {
     if (self.toISOString) {
       self.toISOString = function() {
         return padNumber(self.origDate.getUTCFullYear(), 4) + '-' +
-              padNumber(self.origDate.getUTCMonth() + 1, 2) + '-' +
-              padNumber(self.origDate.getUTCDate(), 2) + 'T' +
-              padNumber(self.origDate.getUTCHours(), 2) + ':' +
-              padNumber(self.origDate.getUTCMinutes(), 2) + ':' +
-              padNumber(self.origDate.getUTCSeconds(), 2) + '.' +
-              padNumber(self.origDate.getUTCMilliseconds(), 3) + 'Z'
+            padNumber(self.origDate.getUTCMonth() + 1, 2) + '-' +
+            padNumber(self.origDate.getUTCDate(), 2) + 'T' +
+            padNumber(self.origDate.getUTCHours(), 2) + ':' +
+            padNumber(self.origDate.getUTCMinutes(), 2) + ':' +
+            padNumber(self.origDate.getUTCSeconds(), 2) + '.' +
+            padNumber(self.origDate.getUTCMilliseconds(), 3) + 'Z'
       }
     }
 
     //hide all methods not implemented in this mock that the Date prototype exposes
     var unimplementedMethods = ['getMilliseconds', 'getUTCDay',
-        'getYear', 'setDate', 'setFullYear', 'setHours', 'setMilliseconds',
-        'setMinutes', 'setMonth', 'setSeconds', 'setTime', 'setUTCDate', 'setUTCFullYear',
-        'setUTCHours', 'setUTCMilliseconds', 'setUTCMinutes', 'setUTCMonth', 'setUTCSeconds',
-        'setYear', 'toDateString', 'toGMTString', 'toJSON', 'toLocaleFormat', 'toLocaleString',
-        'toLocaleTimeString', 'toSource', 'toString', 'toTimeString', 'toUTCString', 'valueOf'];
+      'getYear', 'setDate', 'setFullYear', 'setHours', 'setMilliseconds',
+      'setMinutes', 'setMonth', 'setSeconds', 'setTime', 'setUTCDate', 'setUTCFullYear',
+      'setUTCHours', 'setUTCMilliseconds', 'setUTCMinutes', 'setUTCMonth', 'setUTCSeconds',
+      'setYear', 'toDateString', 'toGMTString', 'toJSON', 'toLocaleFormat', 'toLocaleString',
+      'toLocaleTimeString', 'toSource', 'toString', 'toTimeString', 'toUTCString', 'valueOf'];
 
     angular.forEach(unimplementedMethods, function(methodName) {
       self[methodName] = function() {
@@ -728,8 +728,8 @@ angular.mock.dump = function(object) {
  * # Unit testing with mock $httpBackend
  *
  * <pre>
-   // controller
-   function MyController($scope, $http) {
+ // controller
+ function MyController($scope, $http) {
      $http.get('/auth.py').success(function(data) {
        $scope.user = data;
      });
@@ -744,10 +744,10 @@ angular.mock.dump = function(object) {
      };
    }
 
-   // testing controller
-   var $http;
+ // testing controller
+ var $http;
 
-   beforeEach(inject(function($injector) {
+ beforeEach(inject(function($injector) {
      $httpBackend = $injector.get('$httpBackend');
 
      // backend definition common for all tests
@@ -755,20 +755,20 @@ angular.mock.dump = function(object) {
    }));
 
 
-   afterEach(function() {
+ afterEach(function() {
      $httpBackend.verifyNoOutstandingExpectation();
      $httpBackend.verifyNoOutstandingRequest();
    });
 
 
-   it('should fetch authentication token', function() {
+ it('should fetch authentication token', function() {
      $httpBackend.expectGET('/auth.py');
      var controller = scope.$new(MyController);
      $httpBackend.flush();
    });
 
 
-   it('should send msg to server', function() {
+ it('should send msg to server', function() {
      // now you don’t care about the authentication, but
      // the controller will still send the request and
      // $httpBackend will respond without you having to
@@ -784,7 +784,7 @@ angular.mock.dump = function(object) {
    });
 
 
-   it('should send auth header', function() {
+ it('should send auth header', function() {
      $httpBackend.expectPOST('/add-msg.py', undefined, function(headers) {
        // check if the header was send, if it wasn't the expectation won't
        // match the request and the test will fail
@@ -795,7 +795,7 @@ angular.mock.dump = function(object) {
      controller.saveMessage('whatever');
      $httpBackend.flush();
    });
-   </pre>
+ </pre>
  */
 angular.mock.$HttpBackendProvider = function() {
   this.$get = [createHttpBackendMock];
@@ -885,7 +885,7 @@ function createHttpBackendMock($delegate, $browser) {
     throw wasExpected ?
         Error('No response defined !') :
         Error('Unexpected request: ' + method + ' ' + url + '\n' +
-              (expectation ? 'Expected ' + expectation : 'No more request expected'));
+            (expectation ? 'Expected ' + expectation : 'No more request expected'));
   }
 
   /**
@@ -1223,9 +1223,9 @@ function createHttpBackendMock($delegate, $browser) {
 
   function createShortMethods(prefix) {
     angular.forEach(['GET', 'DELETE', 'JSONP'], function(method) {
-     $httpBackend[prefix + method] = function(url, headers) {
-       return $httpBackend[prefix](method, url, undefined, headers)
-     }
+      $httpBackend[prefix + method] = function(url, headers) {
+        return $httpBackend[prefix](method, url, undefined, headers)
+      }
     });
 
     angular.forEach(['PUT', 'POST', 'PATCH'], function(method) {
@@ -1346,7 +1346,7 @@ function MockXhr() {
  */
 angular.mock.$RootElementProvider = function() {
   this.$get = function() {
-    return angular.element('<div ng-app></div>');
+    return 'TODO: IMPLEMENT';
   }
 };
 
@@ -1365,13 +1365,13 @@ angular.module('ngMock', ['ng', 'core']).provider({
   $httpBackend: angular.mock.$HttpBackendProvider,
   $rootElement: angular.mock.$RootElementProvider
 }).config(function($provide) {
-  $provide.decorator('$timeout', function($delegate, $browser) {
-    $delegate.flush = function() {
-      $browser.defer.flush();
-    };
-    return $delegate;
-  });
-});
+      $provide.decorator('$timeout', function($delegate, $browser) {
+        $delegate.flush = function() {
+          $browser.defer.flush();
+        };
+        return $delegate;
+      });
+    });
 
 
 /**
@@ -1557,7 +1557,7 @@ angular.mock.e2e.$httpBackendDecorator = ['$delegate', '$browser', createHttpBac
 
 angular.mock.clearDataCache = function() {
   var key,
-      cache = angular.element.cache;
+      cache = angular.element && angular.element.cache || {};
 
   for(key in cache) {
     if (cache.hasOwnProperty(key)) {
@@ -1612,7 +1612,7 @@ window.jstestdriver && (function(window) {
     angular.mock.clearDataCache();
 
     // clean up jquery's fragment cache
-    angular.forEach(angular.element.fragments, function(val, key) {
+    angular.element && angular.forEach(angular.element.fragments, function(val, key) {
       delete angular.element.fragments[key];
     });
 

@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 describe('dte.compiler', function() {
   var $compile, $rootScope;

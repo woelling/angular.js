@@ -2,21 +2,90 @@
 
 goog.require('angular.coreModule');
 goog.require('angular.core.Block');
+goog.require('angular.core.$Anchor');
+goog.require('angular.injector');
 
 goog.provide('angular.core.$Block');
 
-angular.core.Block.BLOCK_DYNAMIC_SERVICES_REGEX = /^(\$text|\$attr_|\$on_|\$prop_)(.*)$/;
+angular.core.Block.attrAccessor = function(element, name) {
+  return function(value) {
+    return arguments.length
+        ? element.setAttribute(name, value)
+        : element.getAttribute(name);
+  };
+};
+
+angular.core.Block.classAccessor = function(element, name) {
+  return function(value) {
+    var className = element.className,
+        paddedClassName = ' ' + className + ' ',
+        hasClass = paddedClassName.indexOf(' ' + name + ' ') != -1;
+
+    if (arguments.length) {
+      if (!value && hasClass) {
+        paddedClassName = paddedClassName.replace(' ' + name + ' ', ' ');
+        element.className =
+            paddedClassName.substring(1, paddedClassName.length - 2);
+      } else if (value && !hasClass) {
+        element.className = className + ' ' + name;
+      }
+      hasClass = !!value;
+    }
+    return hasClass;
+  };
+};
+
+angular.core.Block.styleAccessor = function(element, name)  {
+  return function(value) {
+    if (arguments.length) {
+      if (!value) {
+        value = '';
+      }
+      element.style[name] = value;
+    } else {
+      value = element.style[name];
+    }
+    return value;
+  };
+};
+
+angular.core.Block.BLOCK_DYNAMIC_SERVICES_REGEX =
+    /^(\$text|\$attr_?|\$style_?|\$class_?|\$on_?|\$prop_?|\$service_)(.*)$/;
 angular.core.Block.BLOCK_DYNAMIC_SERVICES = {
   '$text': function(name, block, element) {
     return element.nodeType == 3 /* text node */
-        ? function(value) { element.nodeValue = value; }
-        : function(value) { element.innerText = value; };
+        ? function(value) { element.nodeValue = value || ''; }
+        : function(value) { element.innerText = value || ''; };
   },
 
   '$attr_': function(name, block, element) {
-    return function(value) {
-      return arguments.length ? element.setAttribute(name, value) : element.getAttribute(name);
-    }
+    return angular.core.Block.attrAccessor(element, name);
+  },
+
+  '$attr': function(name, block, element) {
+    return function(name) {
+      return angular.core.Block.attrAccessor(element, name);
+    };
+  },
+
+  '$style_': function(name, block, element) {
+    return angular.core.Block.styleAccessor(element, name);
+  },
+
+  '$style': function(name, block, element) {
+    return function(name) {
+      return angular.core.Block.styleAccessor(element, name);
+    };
+  },
+
+  '$class_': function(name, block, element) {
+    return angular.core.Block.classAccessor(element, block);
+  },
+
+  '$class': function(name, block, element) {
+    return function(name) {
+      return angular.core.Block.classAccessor(element, name);
+    };
   },
 
   '$on_': function(name, block, element) {
@@ -36,13 +105,17 @@ angular.core.Block.BLOCK_DYNAMIC_SERVICES = {
     return function(value) {
       return element[name];
     }
+  },
+
+  '$service_': function(name, block, element, $injector) {
+    return $injector.get(name);
   }
 };
 
 angular.core.Block.emptyInjector = createInjector();
 
-angular.coreModule.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiveInjector',
-  function($exceptionHandler,   $Anchor, $directiveInjector) {
+angular.coreModule.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiveInjector', '$injector',
+  function($exceptionHandler,   $Anchor, $directiveInjector, $injector) {
     function Block(elements, directiveDefs, blocksForAnchors) {
       this.elements = elements;
       this.previous = this.next = null;
@@ -66,20 +139,21 @@ angular.coreModule.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiv
               '$element': element,
               '$value': undefined
             },
-            elementInjector = angular.core.Block.emptyInjector.locals(locals, function (name, $injector) {
+            elementInjector = angular.core.Block.emptyInjector.locals(locals, function(name, elementInjector) {
               ASSERT(name);
-              ASSERT($injector);
+              ASSERT(elementInjector);
               var match = name.match(angular.core.Block.BLOCK_DYNAMIC_SERVICES_REGEX),
                   factory = match && angular.core.Block.BLOCK_DYNAMIC_SERVICES[match[1]],
                   oldParameter;
 
               if (factory) {
-                return locals[name] = factory(match[2], block, element);
+                return locals[name] = factory(match[2], block, element, $injector);
               } else if (directiveMap.hasOwnProperty(name)) {
                 oldParameter = locals['$value'];
                 try {
                   locals['$value'] = directiveValues[name];
-                  return locals[name] = $injector.instantiate(directiveMap[name]);
+                  var directive = locals[name] = elementInjector.instantiate(directiveMap[name]);
+                  return directive;
                 } catch (e) {
                   $exceptionHandler(e);
                 } finally {
@@ -91,16 +165,16 @@ angular.coreModule.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiv
         for(var j = 1, jj = elementDirectiveDefs.length; j < jj; j++) {
           try {
             var directiveDef = elementDirectiveDefs[j],
-                directive = directiveDef[0],
+                Directive = directiveDef[0],
                 directiveValue = directiveDef[1],
                 directiveTemplate = directiveDef[2],
                 directiveName;
 
-            if (typeof directive == 'string') {
-              directiveName = directive;
-              directive = $directiveInjector.get(directiveName);
+            if (typeof Directive == 'string') {
+              directiveName = Directive;
+              Directive = $directiveInjector.get(directiveName);
             } else {
-              directiveName = directive.$name || '__' + nextUid();
+              directiveName = Directive.$name || '__' + nextUid();
             }
 
             if (directiveTemplate != undefined) {
@@ -109,7 +183,7 @@ angular.coreModule.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiv
               templates && loadExistingBlocksIntoAnchor(anchor, element, templates);
             }
 
-            directiveMap[directiveName] = directive;
+            directiveMap[directiveName] = Directive;
             directiveList.push(directiveName);
             directiveValues[directiveName] = directiveValue;
           } catch(e) {

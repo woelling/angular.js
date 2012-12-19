@@ -1,5 +1,7 @@
 'use strict';
 
+goog.provide('angular.core.directives');
+
 goog.require('angular.coreModule');
 goog.require('angular.core.Scope');
 goog.require('angular.core.$Anchor');

@@ -230,7 +230,7 @@ describe('HTML', function() {
         expect(isUri('https://abc')).toBeTruthy();
         expect(isUri('ftp://abc')).toBeTruthy();
         expect(isUri('mailto:me@example.com')).toBeTruthy();
-        expect(isUri('#anchor')).toBeTruthy();
+        expect(isUri('#$anchor')).toBeTruthy();
       });
 
       it('should not be UIR', function() {

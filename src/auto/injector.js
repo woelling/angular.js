@@ -1,7 +1,42 @@
 'use strict';
 
+goog.provide('angular.injector');
+goog.provide('angular.Injector');
+goog.provide('angular.Injectable');
+goog.provide('angular.Provide');
+
+goog.require('angular.apis');
+
+
 /**
- * @typedef { Function|Array }
+ * @interface
+ */
+angular.Injector = function() {};
+
+/**
+ * Get a service.
+ * @param {string} name service name to return.
+ * @return {*} .
+ */
+angular.Injector.prototype.get = function(name) {};
+
+/**
+ * Invoke a method.
+ * @param {angular.Injectable} injectableFn method to invoke.
+ * @param {Object=} self The 'this' for the method.
+ * @return {*} return value of the invoked method.
+ */
+angular.Injector.prototype.invoke = function(injectableFn, self) {};
+
+/**
+ * Instantiate type.
+ * @param {angular.Injectable} injectableFn Type to instantiate.
+ * @return {Object} The type instance.
+ */
+angular.Injector.prototype.instantiate = function(injectableFn) {};
+
+/**
+ * @typedef { Function|Array.<string|Function> }
  */
 angular.Injectable;
 
@@ -12,6 +47,40 @@ angular.Provider = function() {};
 
 /** @type angular.Injectable */
 angular.Provider.prototype.$get = function(){};
+
+
+
+var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
+var FN_ARG_SPLIT = /,/;
+var FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
+var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+function annotate(fn) {
+  var $inject,
+      fnText,
+      argDecl,
+      last;
+
+  if (typeof fn == 'function') {
+    if (!($inject = fn.$inject)) {
+      $inject = [];
+      fnText = fn.toString().replace(STRIP_COMMENTS, '');
+      argDecl = fnText.match(FN_ARGS);
+      forEach(argDecl[1].split(FN_ARG_SPLIT), function(arg) {
+        arg.replace(FN_ARG, function(all, underscore, name) {
+          $inject.push(name);
+        });
+      });
+      fn.$inject = $inject;
+    }
+  } else if (isArray(fn)) {
+    last = fn.length - 1;
+    assertArgFn(fn[last], 'fn');
+    $inject = fn.slice(0, last);
+  } else {
+    assertArgFn(fn, 'fn', true);
+  }
+  return $inject;
+}
 
 /**
  * @ngdoc function
@@ -43,42 +112,9 @@ angular.Provider.prototype.$get = function(){};
  */
 
 function createInjector(modulesToLoad) {
-  var $$INJECTOR = '$injector';
   var PROVIDER_SUFFIX = 'Provider';
   var path = [];
   var pathHash = {}
-  var FN_ARGS = /^function\s*[^\(]*\(\s*([^\)]*)\)/m;
-  var FN_ARG_SPLIT = /,/;
-  var FN_ARG = /^\s*(_?)(\S+?)\1\s*$/;
-  var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
-
-  function annotate(fn) {
-    var $inject,
-      fnText,
-      argDecl,
-      last;
-
-    if (typeof fn == 'function') {
-      if (!($inject = fn.$inject)) {
-        $inject = [];
-        fnText = fn.toString().replace(STRIP_COMMENTS, '');
-        argDecl = fnText.match(FN_ARGS);
-        forEach(argDecl[1].split(FN_ARG_SPLIT), function(arg){
-          arg.replace(FN_ARG, function(all, underscore, name){
-            $inject.push(name);
-          });
-        });
-        fn.$inject = $inject;
-      }
-    } else if (isArray(fn)) {
-      last = fn.length - 1;
-      assertArgFn(fn[last], 'fn')
-      $inject = fn.slice(0, last);
-    } else {
-      assertArgFn(fn, 'fn', true);
-    }
-    return $inject;
-  }
 
   function pathPush(name) {
     if (pathHash[name]) {
@@ -340,7 +376,7 @@ function createInjector(modulesToLoad) {
 
       Constructor.prototype = (isArray(Type) ? Type[Type.length - 1] : Type).prototype;
       instance = new Constructor();
-      returnedValue = /** @type Object */ this.invoke(Type, instance);
+      returnedValue = /** @type Object */ (this.invoke(Type, instance));
 
       return isObject(returnedValue) ? returnedValue : instance;
     },
@@ -768,13 +804,12 @@ function createInjector(modulesToLoad) {
         pInstances = {
           '$injector': [this],
           '$provide': [{
-            // TODO(vojta): unquote the method names
-            'provider': supportObject(provider),
-            'factory': supportObject(factory),
-            'service': supportObject(service),
-            'value': supportObject(value),
-            'constant': supportObject(constant),
-            'decorator': decorator
+            provider: supportObject(provider),
+            factory: supportObject(factory),
+            service: supportObject(service),
+            value: supportObject(value),
+            constant: supportObject(constant),
+            decorator: decorator
           }]
         },
         parent = new TerminalInjector();
@@ -847,7 +882,7 @@ function createInjector(modulesToLoad) {
       var instance = provider_;
       if (isFunction(provider_)) {
         /** @constructor */
-        var Provider = /** @type function(new:Provider) */ provider_;
+        var Provider = /** @type function(new:Provider) */ (provider_);
         instance = providerInjector.instantiate(Provider);
       }
       if (!instance.$get) {

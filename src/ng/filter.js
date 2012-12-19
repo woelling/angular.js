@@ -98,13 +98,14 @@ function $FilterProvider($provide) {
 
   ////////////////////////////////////////
 
-  register('currency', currencyFilter);
-  register('date', dateFilter);
-  register('filter', filterFilter);
-  register('json', jsonFilter);
-  register('limitTo', limitToFilter);
-  register('lowercase', lowercaseFilter);
-  register('number', numberFilter);
-  register('orderBy', orderByFilter);
-  register('uppercase', uppercaseFilter);
+  //TODO(misko): re-enable filters
+//  register('currency', currencyFilter);
+//  register('date', dateFilter);
+//  register('filter', filterFilter);
+//  register('json', jsonFilter);
+//  register('limitTo', limitToFilter);
+//  register('lowercase', lowercaseFilter);
+//  register('number', numberFilter);
+//  register('orderBy', orderByFilter);
+//  register('uppercase', uppercaseFilter);
 }

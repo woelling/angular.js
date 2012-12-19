@@ -1,11 +1,10 @@
-"use strict";
+'use strict';
+
+goog.provide('angular.core.$compile');
 
 goog.require('angular.coreModule');
 goog.require('angular.core.$template');
 goog.require('angular.core.$interpolate');
-
-goog.provide('angular.core.$compile');
-
 
 /* STRANGE USE CASES
 

@@ -5,16 +5,20 @@ describe('Block', function() {
 
   var anchor, $rootElement, $template;
 
-  beforeEach(inject(function($Anchor, _$template_, _$rootElement_) {
-    $template = _$template_;
-    $rootElement = _$rootElement_;
+  beforeEach(module(function() {
+    return function($Anchor, _$template_, _$rootElement_) {
+      $template = _$template_;
+      $rootElement = _$rootElement_;
 
-    $rootElement.html('<!-- anchor -->');
-    anchor = new $Anchor([$rootElement[0].firstChild]);
+      $rootElement.html('<!-- anchor -->');
+      anchor = new $Anchor([$rootElement[0].firstChild]);
+    }
   }));
 
   describe('mutation', function() {
     var a, b;
+
+    beforeEach(inject());
 
     beforeEach(function() {
       a = $template('<span>A</span>a')();

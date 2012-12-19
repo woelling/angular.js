@@ -1,5 +1,6 @@
 'use strict';
 
+goog.provide('angular.apis');
 
 /**
  * Computes a hash of an 'obj'.

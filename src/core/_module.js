@@ -1,6 +1,7 @@
 'use strict';
 
 goog.require('angular');
+goog.require('angular.module');
 
 goog.provide('angular.coreModule');
 

@@ -39,10 +39,12 @@ angularFiles = {
     'src/ng/route.js',
     'src/core/services.js',
     'src/core/service/Anchor.js',
-    'src/core/service/Block.js',
+    'src/core/service/block.js',
     'src/core/service/template.js',
     'src/core/service/compile.js',
+    'src/core/service/selector.js',
     'src/core/directive/directives.js',
+    'src/core/directive/inline.js',
 
     'src/ng/filter.js',
     'src/ng/filter/filter.js',

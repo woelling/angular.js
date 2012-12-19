@@ -137,27 +137,27 @@ angular.coreModule.factory('$Block', ['$exceptionHandler', '$Anchor', '$directiv
             locals = {
               '$block': block,
               '$element': element,
-              '$value': undefined
+              '$value': undefined,
+              '$name': undefined
             },
             elementInjector = angular.core.Block.emptyInjector.locals(locals, function(name, elementInjector) {
               ASSERT(name);
               ASSERT(elementInjector);
               var match = name.match(angular.core.Block.BLOCK_DYNAMIC_SERVICES_REGEX),
                   factory = match && angular.core.Block.BLOCK_DYNAMIC_SERVICES[match[1]],
-                  oldParameter;
+                  previousValue;
 
               if (factory) {
                 return locals[name] = factory(match[2], block, element, $injector);
               } else if (directiveMap.hasOwnProperty(name)) {
-                oldParameter = locals['$value'];
+                previousValue = locals['$value'];
                 try {
                   locals['$value'] = directiveValues[name];
-                  var directive = locals[name] = elementInjector.instantiate(directiveMap[name]);
-                  return directive;
+                  return locals[name] = elementInjector.instantiate(directiveMap[name]);
                 } catch (e) {
                   $exceptionHandler(e);
                 } finally {
-                  locals['$value'] = oldParameter;
+                  locals['$value'] = previousValue;
                 }
               }
             });

@@ -5,6 +5,8 @@ angular.module('core.test', ['core']).config(function($provide) {
 });
 
 describe('core.test', function() {
+  var select = angular.core.$template.select;
+
   beforeEach(module('core.test'));
 
   var $ = angular.element;
@@ -219,6 +221,16 @@ describe('core.test', function() {
       expect(select(dom, '.>1+1')).toEqualDOM('<span>b</span><span>c</span>');
     });
 
+    it('should select elements by offset', function() {
+      var dom = $('<b></b><div></div><span></span><ul></ul>');
+      dom = [dom[0], dom[1], dom[2], dom[3]]; // jQuery is not really an array.
+
+      expect(select(dom, '1+1')).toEqualDOM('<div></div><span></span>');
+      expect(select(dom, '1')).toEqualDOM('<div></div>');
+      expect(function() {
+        select(dom, '4');
+      }).toThrow('Selector offset too big.');
+    });
 
   });
 

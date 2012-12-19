@@ -127,5 +127,7 @@ angular.Module.modules = {};
 
 // TODO(misko): temporary hack
 angular.Module.prototype.controller = noop;
-angular.Module.prototype.directive = noop;
+angular.Module.prototype.directive = function(name, Directive) {
+  this.value('directive:' + name, Directive);
+};
 angular.Module.prototype.filter = noop;

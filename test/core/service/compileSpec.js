@@ -66,7 +66,7 @@ describe('dte.compiler', function() {
   it('should throw error if unclosed comment', inject(function() {
     expect(function() {
       $compile('<div><!--[repeat=item in items]--></div>');
-    }).toThrow('Missing ending comment [/repeat]');
+    }).toThrow('Missing ending comment: [/repeat]');
   }));
 
 
@@ -100,8 +100,8 @@ describe('dte.compiler', function() {
             if (block) {
               block.remove();
             }
-            block = $anchor.newBlock('[switch-when=' + value + ']') ||
-                    $anchor.newBlock('[switch-default]');
+            block = $anchor.newBlock('switch-when=' + value) ||
+                $anchor.newBlock('switch-default=');
             if (block) {
               block.insertAfter($anchor);
               block.attach(scope.$new());
@@ -137,6 +137,53 @@ describe('dte.compiler', function() {
   });
 
 
+  it('should allow multiple transclusions on one element', function() {
+    module(function($provide) {
+      var One = function($anchor) {
+        this.attach = function(scope) {
+          var block = $anchor.newBlock();
+          var childScope = scope.$new();
+
+          childScope.test = childScope.test + 1;
+          block.insertAfter($anchor);
+          block.attach(childScope);
+        }
+      };
+      One.$transclude = '.';
+
+      var Two = function($anchor) {
+        this.attach = function(scope) {
+          var block = $anchor.newBlock();
+          var childScope = scope.$new();
+
+          childScope.test = childScope.test + 1;
+          block.insertAfter($anchor);
+          block.attach(childScope);
+        }
+      };
+      Two.$transclude = '.';
+
+      $provide.value({ 'directive:[one]': One, 'directive:[two]': Two });
+    });
+    inject(function($compile) {
+      var element = angular.element(
+          '<div><span one two>{{test}}</span></div>');
+      var block = $compile(element)(element);
+
+      $rootScope.test = 0;
+      block.attach($rootScope);
+      $rootScope.$apply();
+
+      expect(element.html()).toEqual(
+        '<!--[one]-->' +
+          '<!--[two]-->' +
+            '<span class="__ng_003">2</span>' +
+          '<!--[/two]-->' +
+        '<!--[/one]-->');
+    });
+  });
+
+
   describe("interpolation", function() {
     it('should interpolate attribute nodes', inject(function() {
       var element = angular.element('<div test="{{name}}"></div>');
@@ -162,65 +209,4 @@ describe('dte.compiler', function() {
       expect(element.text()).toEqual('angular');
     }));
   });
-
-  describe('selector', function() {
-    var log;
-
-    beforeEach(module(function($provide) {
-      log = [];
-      $provide.value({
-        'directive:b': logger('b'),
-        'directive:.b': logger('.b'),
-        'directive:[directive]': logger('[directive]'),
-        'directive:b[directive]': logger('b[directive]'),
-        'directive:[directive=value]': logger('[directive=value]'),
-        'directive:b[directive=value]': logger('b[directive]')
-      });
-
-      function logger(message) {
-        return ['$value', function(parameter) {
-          log.push(message + '=' + parameter);
-          log.sort();
-          this.attach = noop;
-        }];
-      }
-    }));
-    beforeEach(inject());
-
-    it('should match directive on element', function() {
-      $compile('<b></b>')().attach($rootScope);
-      expect(log).toEqual(['b=undefined']);
-    });
-
-    it('should match directive on class', function() {
-      $compile('<div class="a b c"></div>')().attach($rootScope);
-      expect(log).toEqual(['.b=undefined']);
-    });
-
-
-    it('should match directive on [attribute]', function() {
-      $compile('<div directive=abc></div>')().attach($rootScope);
-      expect(log).toEqual(['[directive]=abc']);
-    });
-
-    
-    it('should match directive on element[attribute]', function() {
-      $compile('<b directive=abc></b>')().attach($rootScope);
-      expect(log).toEqual(['[directive]=abc', 'b=undefined', 'b[directive]=abc']);
-    });
-
-    
-    it('should match directive on [attribute=value]', function() {
-      $compile('<div directive=value></div>')().attach($rootScope);
-      expect(log).toEqual(['[directive=value]=value', '[directive]=value']);
-    });
-
-    
-    it('should match directive on element[attribute=value]', function() {
-      $compile('<b directive=value></div>')().attach($rootScope);
-      expect(log).toEqual(['[directive=value]=value', '[directive]=value', 'b=undefined',
-                           'b[directive]=value', 'b[directive]=value']);
-    });
-  });
-
 });

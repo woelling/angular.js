@@ -76,8 +76,8 @@ angular.coreModule.provider('$rootScope', function $RootScopeProvider(){
     return ttl;
   };
 
-  this.$get = ['$injector', '$exceptionHandler', '$parse',
-      function( $injector,   $exceptionHandler,   $parse) {
+  this.$get = ['$exceptionHandler', '$parse',
+      function( $exceptionHandler,   $parse) {
 
     /**
      * @ngdoc function

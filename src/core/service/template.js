@@ -18,7 +18,7 @@ angular.coreModule.factory('$template', ['$rootElement', '$injector', '$exceptio
       return function block(blockSelectorHtmlOrElements, collectionsBlocks) {
         var blockElements = blockSelectorHtmlOrElements
             ? (typeof blockSelectorHtmlOrElements == 'string'
-            ? select($rootElements, blockSelectorHtmlOrElements)
+            ? angular.core.$template.select($rootElements, blockSelectorHtmlOrElements)
             : blockSelectorHtmlOrElements)
             : clone(templateElements);
 
@@ -29,14 +29,14 @@ angular.coreModule.factory('$template', ['$rootElement', '$injector', '$exceptio
 
     function extractTemplate(selector, directiveDefs) {
       if (typeof selector == 'string') {
-        var elements = clone(select($rootElements, selector));
+        var elements = clone(angular.core.$template.select($rootElements, selector));
 
         // remove the hole contents
         for(var i = 0, ii = directiveDefs.length; i < ii; i++) {
           var elementDirectiveDefs = directiveDefs[i];
 
           if (elementDirectiveDefs[1].length == 3 /* is component */) {
-            var holeElements = select(elements, elementDirectiveDefs[0]),
+            var holeElements = angular.core.$template.select(elements, elementDirectiveDefs[0]),
                 parentNode = holeElements[0].parentNode;
 
             // assume first element is anchor and remove the rest
@@ -69,15 +69,12 @@ angular.coreModule.factory('$template', ['$rootElement', '$injector', '$exceptio
     }
   }]);
 
-angular.core.$template.select = select;
 
-var SELECTOR_REGEX = /^(\.([^+>]*))(\>(\d+))?(\+(\d+))?$/;
-function select(roots, selector) {
+angular.core.$template.select = function (roots, selector) {
   assertArg(roots);
   assertArg(selector);
 
-  var match = SELECTOR_REGEX.exec(selector),
-      foundElement;
+  var match = angular.core.$template.select.SELECTOR_REGEX.exec(selector);
 
   if (!match) {
     if (selector.charAt(0) == '<') {
@@ -87,35 +84,49 @@ function select(roots, selector) {
     }
   }
 
-  for(var i = 0, ii = roots.length; !foundElement && i < ii; i++) {
-    var rootElement = roots[i],
-        childOffset = match[3] ? match[4] * 1 : false,
-        span = match[6] * 1,
-        elements = [];
+  var foundElement,
+      offset = match[3] ? match[4] * 1 : false,
+      span = match[6] * 1 || 0,
+      elements = [];
 
-    if (match[2] === '') {
+  if (!match[1] && !match[2] && match[4]) {
+    // Select by offset
+    var end = offset + span + 1;
+    if (end > roots.length) {
+      throw new Error('Selector offset too big.');
+    }
+    return roots.slice(offset, end);
+  }
+
+  for(var i = 0, ii = roots.length; !foundElement && i < ii; i++) {
+    var rootElement = roots[i];
+
+    if (match[1] === '.') {
+      // select the current element
       foundElement = roots[0];
     } else if (rootElement.className.indexOf(match[2]) != -1)  {
+      // select element if class matches
       foundElement = rootElement;
     } else {
+      // select elements using querySelector
       foundElement = rootElement.querySelector(match[1]);
     }
   }
 
-  if (!foundElement) assertSelector(selector);
+  if (!foundElement) assertSelector(selector, roots);
 
-  if (childOffset !== false) {
+  if (offset !== false) {
     foundElement = foundElement.firstChild;
-    if (!foundElement) assertSelector(selector);
-    while(childOffset--) {
-      if (!foundElement) assertSelector(selector);
+    if (!foundElement) assertSelector(selector, roots);
+    while(offset--) {
+      if (!foundElement) assertSelector(selector, roots);
 
       foundElement = foundElement.nextSibling;
     }
   }
 
   do {
-    if (!foundElement) assertSelector(selector);
+    if (!foundElement) assertSelector(selector, roots);
     elements.push(foundElement);
     if (!(span--)) {
       return elements;
@@ -124,9 +135,32 @@ function select(roots, selector) {
   } while(true);
 }
 
-function assertSelector(selector) {
-  throw new Error('Can not select: ' + selector);
+/**
+ * Supported formats
+ * .
+ * .name
+ * .name+2
+ * .>1
+ * .>1+2
+ * 1
+ * 1+2
+ */
+angular.core.$template.select.SELECTOR_REGEX = /^(\.([^+>]*))?(\>?(\d+))?(\+(\d+))?$/;
+
+function assertSelector(selector, roots) {
+  throw new Error('Can not select: ' + selector + ' ' + startingTag(roots[0]));
 }
+
+/**
+ * @returns {string} Returns the string representation of the element.
+ */
+function startingTag(element) {
+  var html = element.outerHTML || '';
+  return html.
+      match(/^(<[^>]+>)/)[1].
+      replace(/^<([\w\-]+)/, function(match, nodeName) { return '<' + lowercase(nodeName); });
+}
+
 
 // Read about the NoScope elements here:
 // http://msdn.microsoft.com/en-us/library/ms533897(VS.85).aspx

@@ -6,338 +6,186 @@ goog.require('angular.coreModule');
 goog.require('angular.core.$template');
 goog.require('angular.core.$interpolate');
 
-/* STRANGE USE CASES
-
-<zippy ng-show="" ng-repeat="" title="{{}}"></zippy>
-expected order: ng-repeat, ng-show, zippy (title),
-ng-show has nothing to hide when zippy replaces content
-
-<div ng-switch>
-  <div ng-switch-when></div>
-  <div ng-switch-when></div>
-  <div ng-switch-default></div>
-</div>
-
-ngRepeat = {
-  priority: 1000,
-  transclude: '.'
-}
-
-ngSwitch = {
-  transclude: [ '>[ngSwitchWhen]', '>[ngSwitchDefault]']
-}
-
-ngHide = {
-  transclude: '.'
-}
-
-
- */
-
-angular.core.$compile.SELECTOR_REGEXP = /^([\w\-]*)(?:\.([\w\-]*))?(?:\[([\w\-]*)(?:=(.*))?\])?$/;
-angular.core.$compile.COMMENT_COMPONENT_REGEXP = /^\[([\w\-]+)(?:\=(.*))?\]$/;
-
-angular.coreModule.factory('$compile', ['$template', '$directiveInjector', '$interpolate',
-  function($template, $directiveInjector, $interpolate) {
-    var directiveMap;
+angular.coreModule.factory('$compile', ['$template', '$directiveInjector',
+  function($template, $directiveInjector) {
+    /**
+     *
+     * @type {angular.core.Select}
+     */
+    var selector = angular.core.Selector($directiveInjector.enumerate());
 
     /**
      * @param {Array.<Element>} elements the elements to compile.
-     * @param {Object=} preventRecursion prevents recursion.
      * @returns {Function}
      */
-    function compile(elements, preventRecursion) {
+    function compile(elements) {
       var directives = [];
 
-      walkDOM(elements, directives, preventRecursion);
+      walkDOM(elements, directives);
 
       return $template(elements, directives);
     };
 
-    // TODO: preventRecursion should be the selector, where we remove already processed component
     /**
      * @param {NodeList|Array.<Element>} elements
      * @param {Array} blockDirectives
-     * @param {Object=} preventRecursion
      */
-    function walkDOM(elements, blockDirectives, preventRecursion) {
-      var parentId;
-
+    function walkDOM(elements, blockDirectives) {
       for(var i = 0, ii = elements.length; i < ii ; i++) {
         var node = elements[i],
-            selector = selectNode(directiveMap, node, preventRecursion, $directiveInjector),
-            directives = selector.directives,
-            recurse = true,
-            directive;
+            directiveInfos = selector(node),
+            compileChildren = true,
+            nodeId = null;
 
-        if (directive = selector.component) {
-          if (!preventRecursion) preventRecursion = {};
-          preventRecursion[selector.cName] = true;
-          var componentNodes = selector.cNodes,
-              transcludeSelector = directive.$transclude,
-              transcludeSelf = transcludeSelector == '.',
-              selectorPath,
+        // Resolve the Directive Controllers
+        for(var j = 0, jj = directiveInfos.length; j < jj; j++) {
+          var directiveInfo = directiveInfos[j];
+
+          directiveInfo.Directive = $directiveInjector.get(directiveInfo.selector);
+        }
+
+        // Sort
+        // TODO
+
+        // process the directives
+        for(var k = 0, kk = directiveInfos.length; k < kk; k++) {
+          var directiveInfo = directiveInfos[k],
+              Directive = directiveInfo.Directive,
+              childNodes,
+              $transclude = Directive.$transclude,
+              nodeId = null,
               templates;
 
-          recurse = false;
-          if (componentNodes) {
-            // correct for the bogus element
-            var parentNode = node.parentNode;
-            for(var k = 0, kk = componentNodes.length; k < kk; k++) {
-              parentNode.removeChild(componentNodes[k]);
-              ii--;
-            }
-            i++; // skip the end element
-          }
-
-          if (transcludeSelf) {
+          if ($transclude) {
             var parent = node.parentNode,
                 ownerDocument = node.ownerDocument;
 
-            if (componentNodes) {
-              selectorPath = getSelectId(node, i, true);
-            } else {
-              selectorPath = getSelectId(node, i, true);
-              // create a bogus element
-              parent.insertBefore(ownerDocument.createComment('[' + selector.cName + '=' + selector.cValue + ']'), node);
-              parent.replaceChild(ownerDocument.createComment('[/' + selector.cName + ']'), node);
-              i++, ii++; // compensate for new bogus ending element;
-              componentNodes = [node];
-            }
-            templates = compile(componentNodes, preventRecursion);
-          } else {
-            if (componentNodes) {
-              throw Error('implement: switch made from comments');
-            } else {
-              templates = transcludeChildren(node.childNodes || [node], directive.$transclude, preventRecursion);
-              node.innerHTML = '<!--Anchor:' + selector.cName + '-->';
-              selectorPath = getSelectId(node.firstChild, 0, true);
-            }
-          }
+            // stop further processing of directives and stop further compilation.
+            k = kk;
+            compileChildren = false;
 
-          blockDirectives.push([selectorPath, [directive, selector.cValue, templates]]);
-        } else if (directives) {
-          directives.unshift(getSelectId(node, i));
-          blockDirectives.push(directives);
+            if (directiveInfo.pseudoElement) {
+              // We have to point to the anchor element
+              nodeId = markNode(node, i);
+
+              // we have to remove the pseudo children.
+              childNodes = removeNodes(parent, directiveInfo.childNodes);
+              ii -= childNodes.length;
+            } else if ($transclude == '.') {
+              // We point to the transcluded element, but it will get replaced with pseudoelement.
+              childNodes = [node];
+              // create a bogus element
+              var pseudoStart = ownerDocument.createComment('[' + directiveInfo.name +
+                  (directiveInfo.value ? '=' + directiveInfo.value : directiveInfo.value) + ']');
+              var pseudoEnd = ownerDocument.createComment('[/' + directiveInfo.name + ']');
+
+              if (parent) {
+                // if we have a parent then replace current node with pseudo nodes
+                parent.insertBefore(pseudoStart, node);
+                parent.replaceChild(pseudoEnd, node);
+              } else {
+                // we have no parent, which means we are the root of a template.
+                // we need to update the template which was feed to us.
+                elements.splice(i, 1, pseudoStart, pseudoEnd);
+                i++; // correct index to skip the pseudoEnd.
+              }
+              nodeId = markNode(pseudoStart, 0);
+              i++, ii++; // compensate for new bogus ending element;
+              // remove the element which triggered the selector
+              node.removeAttribute && node.removeAttribute(directiveInfo.name);
+            } else {
+              var anchor = ownerDocument.createComment('Anchor:' + directiveInfo.name);
+              // clean transclusion content.
+              childNodes = removeNodes(node, node.childNodes);
+              node.appendChild(anchor);
+              nodeId = markNode(anchor, 0);
+            }
+            // compute the node selector for the anchor
+          } else {
+            nodeId = markNode(node, i);
+          }
+          templates = $transclude && compileTransclusions($transclude, childNodes || node.childNodes);
+          blockDirectives.push([nodeId, [Directive, directiveInfo.value, templates]]);
         }
 
-        if(recurse) {
+
+        if(compileChildren) {
           walkDOM(node.childNodes, blockDirectives);
         }
       }
     }
 
-    function transcludeChildren(childNodes, transcludeSelector, preventRecursion) {
-      var transcludeMap = {},
-          directiveMap = createSelectorMap(transcludeSelector.split(','), '>');
+    function compileTransclusions(selector, childNodes) {
+      if (selector == '.') {
+        return compile(childNodes);
+      } else {
+        var childSelector = angular.core.Selector(selector.split(','), '>'),
+            templates = {};
 
-      for(var i = 0, ii = childNodes.length; i < ii; i++) {
-        var childNode = childNodes[i],
-            selector = selectNode(directiveMap, childNode),
-            directives = selector.directives,
-            template = directives && compile([childNode]);
+        for (var i = 0, ii = childNodes.length; i < ii; i++) {
+          var node = childNodes[i],
+              directiveInfos = childSelector(node);
 
-        if (directives) {
-          for(var j = 0, jj = directives.length; j < jj; j++) {
-            transcludeMap[directives[j][0]] = template;
-            transcludeMap[directives[j][0].replace(/\]$/, '=' + directives[j][1] + ']')] = template;
+          if (directiveInfos.length) {
+            var template = compile([node]);
+
+            for (var j = 0, jj = directiveInfos.length; j < jj; j++) {
+              var directiveInfo = directiveInfos[j];
+
+              templates[directiveInfo.name + '=' + directiveInfo.value] = template;
+            }
           }
         }
+        return templates;
       }
-      return transcludeMap;
     }
 
-    // TODO: do we actually need preventRecursion???
-    /**
-     * @param {Object} directiveMap
-     * @param {Element} node
-     * @param {Object=} preventRecursion
-     * @param {Function=} injector
-     */
-    function selectNode(directiveMap, node, preventRecursion, injector) {
-      var attrMap = directiveMap[node.nodeName.toLowerCase()],
-          attrMapAny = directiveMap[''] || EMPTY_MAP,
-          classMap = directiveMap['.'] || EMPTY_MAP,
-          valueMap,
-          directives,
-          directiveName,
-          interpolateFn,
-          classNames,
-          match;
+    function removeNodes(parent, childNodes) {
+      var removed = [],
+          child;
 
-      // Select element[*]
-      if (attrMap && (valueMap = attrMap['']) && (directiveName = valueMap['']) ) {
-        addDirective(directiveName);
+      for(var i = childNodes.length - 1; i >= 0; i--) {
+        child = childNodes[i];
+        parent.removeChild(child);
+        removed.push(child);
       }
-      valueMap = false;
-
-      // Process the element
-      switch(node.nodeType) {
-        case 1: /* Element */
-          // Select .name
-          if (classNames = node.className) {
-            classNames = classNames.split(' ');
-            for(var i = 0, ii = classNames.length, name; i < ii; i++) {
-              name = classNames[i];
-              classMap.hasOwnProperty(name) && addDirective(classMap[name], name);
-            }
-          }
-
-          // Select [attributes]
-          for (var attr, attrs = node.attributes, value, j = 0, jj = attrs && attrs.length; j < jj; j++) {
-            attr = attrs[j];
-            if (attr.specified) {
-              value = attr.value;
-
-              if (interpolateFn = $interpolate(value, true)) {
-                addDirective(['$attr_'+attr.name, '$value', interpolateSetter], null, interpolateFn);
-              }
-
-              selector(attr.name, value);
-            }
-          }
-          break;
-        case 3: /* Text Node */
-          if (interpolateFn = $interpolate(node.nodeValue, true)) {
-            addDirective(['$text', '$value', interpolateSetter], null, interpolateFn);
-          }
-          break;
-        case 8: /* Comment */
-          if (match = node.nodeValue.match(angular.core.$compile.COMMENT_COMPONENT_REGEXP)) {
-            var nodes = selector.cNodes = [],
-                endComment = '[/' + match[1] + ']',
-                next = node;
-
-            selector(match[1], match[2]);
-
-            while(true) {
-              next = next.nextSibling;
-              if (next) {
-                if (next.nodeType == 8 && next.nodeValue == endComment) {
-                  break;
-                } else {
-                  nodes.push(next);
-                }
-              } else {
-                throw Error('Missing ending comment ' + endComment);
-              }
-            }
-          }
-      }
-
-
-      // TODO: clean up the arguments and this function
-      /**
-       * @param {Object|string} directiveName the name of the directive.
-       * @param {?string=} aName
-       * @param {?string=} aValue
-       */
-      function addDirective(directiveName, aName, aValue) {
-        if (!preventRecursion || !preventRecursion.hasOwnProperty(aName)) {
-          var directive = (injector && typeof directiveName == 'string')
-              ? $directiveInjector.get(directiveName) : directiveName;
-
-          if (directive.$transclude) {
-            if(selector.cName) {
-              throw new Error('Only one component is allowed per element. First: ' + selector.cId +
-                  ' Second: ' + directiveName.id);
-            }
-            selector.component = directive;
-            selector.cName = aName;
-            selector.cValue = aValue;
-            selector.cId = directiveName.id;
-          } else {
-            if (!directives) {
-              selector.directives = directives = [];
-            }
-            directives.push([directive, aValue]);
-          }
-        }
-      }
-
-      function selector(aName, aValue) {
-        directiveName = attrMap && attrMap.hasOwnProperty(aName) && (valueMap = attrMap[aName])[aValue];
-        directiveName && addDirective(directiveName, aName, aValue);
-        directiveName = valueMap && valueMap[''];
-        directiveName && addDirective(directiveName, aName, aValue);
-        valueMap = false;
-
-        directiveName = attrMapAny && attrMapAny.hasOwnProperty(aName) && (valueMap = attrMapAny[aName])[aValue];
-        directiveName && addDirective(directiveName, aName, aValue);
-        directiveName = valueMap && valueMap[''];
-        directiveName && addDirective(directiveName, aName, aValue);
-        valueMap = false;
-
-        return selector;
-      }
-
-      return selector;
+      return removed;
     }
 
-
     /**
-     * @param {Element} node
+     * Decorate the node with a unique selector id for later reference.
+     *
+     * @param {Node} node
      * @param {number} index
-     * @param {boolean=} forceParent
      */
-    function getSelectId(node, index, forceParent) {
-      var id = '__ng_' + nextUid(),
-          isElement = !forceParent && node.nodeType == 1 /* Element */,
-          element = isElement ? node : node.parentNode,
-          className = element.className;
+    function markNode(node, index) {
+      var parentNode,
+          className,
+          match,
+          id;
 
-      element.className = className ? className + ' ' + id : id;
-      id = '.' + id;
-      if (!isElement) id = id + '>' + index;
-
-      return id;
-    }
-
-    directiveMap = createSelectorMap($directiveInjector.enumerate());
-
-    /**
-     * @param {Array.<string>} selectors the selectors.
-     * @param {string=} startWith the required starting character for the selectors.
-     * @return {Object.<Element,*>}
-     */
-    function createSelectorMap(selectors, startWith) {
-      var selectorMap = {};
-
-      forEach(selectors, function(selector) {
-        if (startWith) {
-          if (selector.charAt(0) != startWith) {
-            throw Error('TEST ME!!! Selector must start with: ' + startWith + ' was: ' + selector);
-          }
-          selector = selector.substr(startWith.length);
+      if (node.nodeType == 1 /* Element */) {
+        // we are an element, just mark it.
+        className = node.className;
+        match = className && className.match(ID_REGEXP);
+        if (match) {
+          id = match[1];
+        } else {
+          id = '__ng_' + nextUid();
+          node.className = className ? className + ' ' + id : id;
         }
-
-        var elementAttrValue = assertArg(selector.match(angular.core.$compile.SELECTOR_REGEXP), selector, 'not valid selector.'),
-            element = elementAttrValue[1] || '',
-            className = elementAttrValue[2] || '',
-            attr = elementAttrValue[3] || '',
-            value = elementAttrValue[4] || '',
-            attrMap,
-            valueMap,
-            classMap;
-
-        if(element || attr || value) {
-          attrMap = selectorMap[element] || (selectorMap[element] = {});
-          valueMap = attrMap[attr] || (attrMap[attr] = {});
-          valueMap[value] = selector;
-        } else if (className) {
-          classMap = selectorMap['.'] || (selectorMap['.'] = {});
-          classMap[className] = selector;
-        }
-      });
-      return selectorMap;
-    };
-
-    function interpolateSetter(setter, interpolateFn) {
-      this.attach = function(scope) {
-        setter('');
-        scope.$watch(interpolateFn, setter);
+        id = '.' + id;
+      } else if (parentNode = node.parentNode) {
+        // we have a parent node do parent, then offset.
+        id = markNode(parentNode) + '>' + index;
+      } else {
+        // we have no parent node, we must be compile root so just use offset.
+        id = '' + index;
       }
+        return id;
     }
+    var ID_REGEXP = /\b(__ng_[\d\w]+)\b/;
+
     return function(element) {
       return compile(isString(element) ? angular.core.$template.htmlToDOM(element) : element);
     };

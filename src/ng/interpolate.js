@@ -1,8 +1,8 @@
 'use strict';
 
-goog.require('angular.core.module');
-goog.require('angular.core.$parse');
 goog.require('angular.core.$exceptionHandler');
+goog.require('angular.core.$parse');
+goog.require('angular.core.module');
 
 goog.provide('angular.core.$interpolate');
 

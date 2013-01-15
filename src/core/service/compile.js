@@ -181,7 +181,7 @@ angular.core.module.factory('$compile', ['$template', '$directiveInjector',
       if (node.nodeType == 1 /* Element */) {
         // we are an element, just mark it.
 
-        var element = /** @type Element */node;
+        var element = (/** @type Element */node);
 
         className = element.className;
         match = className && className.match(ID_REGEXP);

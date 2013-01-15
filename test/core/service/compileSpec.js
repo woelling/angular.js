@@ -63,6 +63,25 @@ describe('dte.compiler', function() {
   }));
 
 
+  it('should compile text', inject(function() {
+    var element = angular.element('<div>{{name}}<span>!</span></div>').contents();
+    element.remove();
+
+    var template = $compile(element);
+
+    $rootScope.name = 'OK';
+    var block = template();
+
+    element = angular.element(block.elements);
+
+    block.attach($rootScope);
+
+    expect(element.text()).toEqual('!');
+    $rootScope.$digest();
+    expect(element.text()).toEqual('OK!');
+  }));
+
+
   it('should throw error if unclosed comment', inject(function() {
     expect(function() {
       $compile('<div><!--[repeat=item in items]--></div>');
@@ -131,7 +150,7 @@ describe('dte.compiler', function() {
       expect(element.text()).toEqual('when');
 
       $rootScope.name = 'abc';
-      $rootScope.$apply()
+      $rootScope.$apply();
       expect(element.text()).toEqual('default');
     }));
   });
@@ -175,12 +194,14 @@ describe('dte.compiler', function() {
       block.attach($rootScope);
       $rootScope.$apply();
 
-      expect(element.html()).toEqual(
-        '<!--[one]-->' +
-          '<!--[two]-->' +
-            '<span class="__ng_003">2</span>' +
-          '<!--[/two]-->' +
-        '<!--[/one]-->');
+      expect(htmlIdClean(element)).toEqual(
+        '<div class="__ng_ID">' +
+          '<!--[one]-->' +
+            '<!--[two]-->' +
+              '<span class="__ng_ID">2</span>' +
+            '<!--[/two]-->' +
+          '<!--[/one]-->' +
+        '</div>');
     });
   });
 

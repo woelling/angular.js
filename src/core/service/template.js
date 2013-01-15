@@ -99,15 +99,16 @@ angular.core.$template.select = function (roots, selector) {
   }
 
   for(var i = 0, ii = roots.length; !foundElement && i < ii; i++) {
-    var rootElement = roots[i];
+    var rootElement = roots[i],
+        isElement = rootElement.nodeType == 1;
 
     if (match[1] === '.') {
       // select the current element
       foundElement = roots[0];
-    } else if (rootElement.className.indexOf(match[2]) != -1)  {
+    } else if (isElement && rootElement.className.indexOf(match[2]) != -1)  {
       // select element if class matches
       foundElement = rootElement;
-    } else {
+    } else if (isElement) {
       // select elements using querySelector
       foundElement = rootElement.querySelector(match[1]);
     }
@@ -155,8 +156,8 @@ function assertSelector(selector, roots) {
  * @returns {string} Returns the string representation of the element.
  */
 function startingTag(element) {
-  var html = element.outerHTML || '';
-  return html.
+  var html = element.outerHTML;
+  return html && html.
       match(/^(<[^>]+>)/)[1].
       replace(/^<([\w\-]+)/, function(match, nodeName) { return '<' + lowercase(nodeName); });
 }

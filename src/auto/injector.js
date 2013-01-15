@@ -14,9 +14,10 @@ goog.require('angular.apis');
 angular.Injector = function() {};
 
 /**
+ * @template T
  * Get a service.
  * @param {string} name service name to return.
- * @return {*} .
+ * @return {T} .
  */
 angular.Injector.prototype.get = function(name) {};
 
@@ -27,6 +28,13 @@ angular.Injector.prototype.get = function(name) {};
  * @return {*} return value of the invoked method.
  */
 angular.Injector.prototype.invoke = function(injectableFn, self) {};
+
+/**
+ * @param {Object} locals .
+ * @param {function(string, angular.Injector):*} factoryFn .
+ * @return {angular.Injector} return value of the invoked method.
+ */
+angular.Injector.prototype.locals = function(locals, factoryFn) {};
 
 /**
  * Instantiate type.
@@ -46,7 +54,7 @@ angular.Injectable;
 angular.Provider = function() {};
 
 /** @type angular.Injectable */
-angular.Provider.prototype.$get = function(){};
+angular.Provider.prototype.$get = function() {};
 
 
 
@@ -94,7 +102,7 @@ function annotate(fn) {
 
  * @param {Array.<string|Function>=} modulesToLoad A list of module functions or their aliases. See
  *        {@link angular.module}. The `ng` module must be explicitly added.
- * @returns {*} Injector an injector. See {@link AUTO.$injector $injector}.
+ * @returns {angular.Injector} Injector an injector. See {@link AUTO.$injector $injector}.
  *
  * @example
  * Typical usage
@@ -182,6 +190,7 @@ function createInjector(modulesToLoad) {
    * (This is minification safe)
    *
    * @constructor
+   * @implements angular.Injector
    */
   function Injector(parent) {
     this.$$parent = parent;
@@ -287,12 +296,13 @@ function createInjector(modulesToLoad) {
      * @ngdoc method
      * @name AUTO.$injector#invoke
      * @methodOf AUTO.$injector
+     * @override
      *
      * @description
      * Invoke the method and supply the method arguments from the `$injector`.
      *
-     * @param {!Function} fn The function to invoke. The function arguments come form the function
-     *  annotation.
+     * @param {angular.Injectable} fn The function to invoke. The function
+     * arguments come form the function annotation.
      * @param {Object=} self The `this` for the invoked method.
      * @returns {*} the value returned by the invoked `fn` function.
      *
@@ -346,7 +356,7 @@ function createInjector(modulesToLoad) {
      * operator and supplies all of the arguments to the constructor function as specified by the
      * constructor annotation.
      *
-     * @param {!Function} Type Annotated constructor function.
+     * @param {angular.Injectable} Type Annotated constructor function.
      * @returns {Object} new instance of `Type`.
      *
      *
@@ -475,7 +485,7 @@ function createInjector(modulesToLoad) {
      *
      * @param {Array.<string|Function>=} modules A list of module functions or their aliases. See
      *        {@link angular.module}. The `ng` module must be explicitly added.
-     * @returns {Injector} Injector an injector. See {@link AUTO.$injector $injector}.
+     * @returns {angular.Injector} Injector an injector. See {@link AUTO.$injector $injector}.
      *
      * <pre>
      *  angular.module('root').
@@ -560,7 +570,7 @@ function createInjector(modulesToLoad) {
      * </pre>
      *
      * @param {Object} locals
-     * @param {function(string)=} resolveFn A function which gets a chance to resolve a service. It
+     * @param {function(string, angular.Injector)=} resolveFn A function which gets a chance to resolve a service. It
      *        is called if the locals do not contain the service. Return `undefined` if the
      *        service can not be resolved and the request should be delegated to the parent injector.
      * @returns {LocalsInjector} Injector an injector. See {@link AUTO.$injector $injector}.
@@ -737,7 +747,7 @@ function createInjector(modulesToLoad) {
    *     };
    *   }
    *
-   *   describe('Greeter', function(){
+   *   describe('Greeter', function() {
    *
    *     beforeEach(module(function($provide) {
    *       $provide.provider('greet', GreetProvider);

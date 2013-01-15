@@ -24,7 +24,7 @@ angular.core.Directive.prototype.attach = function(scope){};
  *   $transclude: string
  * }}
  */
-angular.core.DirectiveType,
+angular.core.DirectiveType;
 
 
 /**

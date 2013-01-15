@@ -5,6 +5,8 @@ goog.provide('angular.module');
 goog.require('angular');
 
 /**
+ * The module class allows configuration of the services. The configuration
+ * is then replayed to the injector during its configuration phase.
  *
  * @param {string} name
  * @param {Array.<string|angular.Module>=} dependencies
@@ -13,15 +15,25 @@ goog.require('angular');
 angular.Module = function(name, dependencies) {
   var self = this;
 
+  /** @type {Array} */
   this.requires = dependencies || [];
+  /** @type {Array} @private */
   this.configures_ = [];
+  /** @type {Array} @private */
   this.values_ = [];
+  /** @type {Array} @private */
+  this.constants_ = [];
+  /** @type {Array} @private */
   this.factories_ = [];
+  /** @type {Array} @private */
   this.services_ = [];
+  /** @type {Array} @private */
   this.providers_ = [];
+  /** @type {Array} @private */
   this.runBlocks_ = [];
 
   this.$$configure = function($provide, $injector) {
+    forEach(self.constants_, invoke($provide, $provide.value));
     forEach(self.values_, invoke($provide, $provide.value));
     forEach(self.factories_, invoke($provide, $provide.factory));
     forEach(self.services_, invoke($provide, $provide.service));
@@ -72,6 +84,16 @@ angular.Module.prototype.run = function(runFn) {
  */
 angular.Module.prototype.value = function(name, value) {
   this.values_.push(arguments);
+  return this;
+};
+
+/**
+ * @param {string|Object} name
+ * @param {*=} value
+ * @return {angular.Module}
+ */
+angular.Module.prototype.constant = function(name, value) {
+  this.constants_.push(arguments);
   return this;
 };
 

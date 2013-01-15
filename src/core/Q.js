@@ -16,7 +16,7 @@ angular.core.Q = function() {};
 angular.core.Q.prototype.defer = function() {};
 
 /**
- * @param {*} reson .
+ * @param {*} reason .
  * @return {angular.core.Promise} .
  */
 angular.core.Q.prototype.reject = function(reason) {};
@@ -33,13 +33,31 @@ angular.core.Q.prototype.all = function(promises) {};
  */
 angular.core.Q.prototype.when = function(value) {};
 
+
+
+
+/**
+ * @interface
+ */
+angular.core.Promise = function() {};
+
+/**
+ * @template T
+ * @param {angular.core.PromiseCallback.<T>} successCallback
+ * @param {angular.core.PromiseCallback=} errorCallback
+ * @return {angular.core.Promise.<T>}
+ */
+angular.core.Promise.prototype.then = function(successCallback, errorCallback) {};
+
+
 /**
  * @interface
  */
 angular.core.Defer = function() {};
 
 /**
- * @type {angular.core.Promise}
+ * @template T
+ * @type {angular.core.Promise.<T>}
  */
 angular.core.Defer.prototype.promise;
 
@@ -54,18 +72,6 @@ angular.core.Defer.prototype.resolve = function(value) {};
 angular.core.Defer.prototype.reject = function(reason) {};
 
 /**
- * @interface
- */
-angular.core.Promise = function() {};
-
-/**
- * @param {angular.core.PromiseCallback} successCallback
- * @param {angular.core.PromiseCallback} errorCallback
- */
-angular.core.Promise.prototype.then = function(successCallback, errorCallback) {};
-
-
-/**
- * @typedef {function(*):*}
+ * @typedef {function(?):?}
  */
 angular.core.PromiseCallback;

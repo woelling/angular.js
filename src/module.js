@@ -193,8 +193,6 @@ angular.Module.prototype.curryTypeFactory = function(name, Type, isPrivate) {
 
 angular.Module.modules = {};
 
-// TODO(misko): temporary hack
-angular.Module.prototype.controller = noop;
 
 /**
  *
@@ -202,6 +200,10 @@ angular.Module.prototype.controller = noop;
  * @param Directive
  * @returns {angular.Module}
  */
+angular.Module.prototype.controller = function(name, Controller) {
+  this.service('controller:' + name, Controller, true);
+};
+
 angular.Module.prototype.directive = function(name, Directive) {
   this.value('directive:' + name, Directive);
   return this;

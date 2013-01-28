@@ -179,3 +179,30 @@ angular.core.directive.Repeat = function Repeat($anchor, $value, $service_$parse
 angular.annotate.$inject(['$anchor', '$value', '$service_$parse'], angular.core.directive.Repeat);
 angular.core.directive.Repeat.$transclude = '.';
 angular.core.directive.Repeat.$priority = 1000;
+
+
+angular.core.directive.Controller = function($injector) {
+  WrapperController.$inject = ['$value', '$anchor'];
+  WrapperController.$transclude = '.';
+
+  this.attach = function(scope) {
+    var childScope = scope.$new();
+
+    // create new instance (block) and attach it
+    var block = anchor.newBlock();
+    block.attach(childScope);
+    block.insertAfter(anchor);
+
+    // TODO(vojta): use locals() once it's fixed
+    var localInjector = $injector.load([['$provide', function($provide) {
+      $provide.value('$scope', childScope);
+    }]]);
+
+    // instantiate the controller
+    localInjector.get('controller:' + value);
+  };
+};
+angular.annotate.$inject(['$value', '$anchor'], angular.core.directive.Controller);
+angular.core.directive.Controler.$transclude = '.';
+
+

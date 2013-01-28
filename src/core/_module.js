@@ -50,3 +50,17 @@ angular.core.module = angular.module('core', []).
     directive(angular.core.directive.TextInterpolation.$selector, angular.core.directive.TextInterpolation).
     directive(angular.core.directive.AttrInterpolation.$selector, angular.core.directive.AttrInterpolation);
 
+/**
+ * @param {*} arg
+ */
+function jqLite(arg) {
+  throw Error('No jqLite provided');
+}
+
+/**
+ * @param {string} name
+ * @param {*=} value
+ */
+jqLite.prototype.prop = function(name, value) {
+  throw Error();
+}

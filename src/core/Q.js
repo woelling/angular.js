@@ -11,7 +11,7 @@ goog.provide('angular.core.Q');
 angular.core.Q = function() {};
 
 /**
- * @return {angular.core.Defer} .
+ * @return {angular.core.Deferred} .
  */
 angular.core.Q.prototype.defer = function() {};
 
@@ -53,23 +53,23 @@ angular.core.Promise.prototype.then = function(successCallback, errorCallback) {
 /**
  * @interface
  */
-angular.core.Defer = function() {};
+angular.core.Deferred = function() {};
 
 /**
  * @template T
  * @type {angular.core.Promise.<T>}
  */
-angular.core.Defer.prototype.promise;
+angular.core.Deferred.prototype.promise;
 
 /**
  * @param {*} value .
  */
-angular.core.Defer.prototype.resolve = function(value) {};
+angular.core.Deferred.prototype.resolve = function(value) {};
 
 /**
  * @param {*} reason .
  */
-angular.core.Defer.prototype.reject = function(reason) {};
+angular.core.Deferred.prototype.reject = function(reason) {};
 
 /**
  * @typedef {function(?):?}

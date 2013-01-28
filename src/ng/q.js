@@ -129,6 +129,8 @@ angular.core.module.provider('$q', $QProvider);
  *   you can treat promises attached to a scope as if they were the resulting values.
  * - Q has many more features that $q, but that comes at a cost of bytes. $q is tiny, but contains
  *   all the important functionality needed for common async tasks.
+ *
+ * @constructor
  */
 function $QProvider() {
 
@@ -143,10 +145,10 @@ function $QProvider() {
 /**
  * Constructs a promise manager.
  *
- * @param {function(function)} nextTick Function for executing functions in the next turn.
- * @param {function(...*)} exceptionHandler Function into which unexpected exceptions are passed for
+ * @param {function(Function)} nextTick Function for executing functions in the next turn.
+ * @param {function(...[*])} exceptionHandler Function into which unexpected exceptions are passed for
  *     debugging purposes.
- * @returns {object} Promise manager.
+ * @return {Object} Promise manager.
  */
 function qFactory(nextTick, exceptionHandler) {
 
@@ -157,7 +159,7 @@ function qFactory(nextTick, exceptionHandler) {
    * @description
    * Creates a `Deferred` object which represents a task which will finish in the future.
    *
-   * @returns {Deferred} Returns a new instance of deferred.
+   * @return {angular.core.Deferred} Returns a new instance of deferred.
    */
   var defer = function() {
     var pending = [],
@@ -222,7 +224,7 @@ function qFactory(nextTick, exceptionHandler) {
       }
     };
 
-    return deferred;
+    return /** @type {angular.core.Deferred} */(deferred);
   };
 
 
@@ -273,10 +275,10 @@ function qFactory(nextTick, exceptionHandler) {
    * </pre>
    *
    * @param {*} reason Constant, message, exception or an object representing the rejection reason.
-   * @returns {Promise} Returns a promise that was already resolved as rejected with the `reason`.
+   * @return {angular.core.Promise} Returns a promise that was already resolved as rejected with the `reason`.
    */
   var reject = function(reason) {
-    return {
+    return /** @type{angular.core.Promise} */ ({
       then: function(callback, errback) {
         var result = defer();
         nextTick(function() {
@@ -284,7 +286,7 @@ function qFactory(nextTick, exceptionHandler) {
         });
         return result.promise;
       }
-    };
+    });
   };
 
 
@@ -298,7 +300,7 @@ function qFactory(nextTick, exceptionHandler) {
    * the promise comes from a source that can't be trusted.
    *
    * @param {*} value Value or a promise
-   * @returns {Promise} Returns a single promise that will be resolved with an array of values,
+   * @return {angular.core.Promise} Returns a single promise that will be resolved with an array of values,
    *   each value coresponding to the promise at the same index in the `promises` array. If any of
    *   the promises is resolved with a rejection, this resulting promise will be resolved with the
    *   same rejection.
@@ -359,8 +361,8 @@ function qFactory(nextTick, exceptionHandler) {
    * Combines multiple promises into a single promise that is resolved when all of the input
    * promises are resolved.
    *
-   * @param {Array.<Promise>} promises An array of promises.
-   * @returns {Promise} Returns a single promise that will be resolved with an array of values,
+   * @param {Array.<angular.core.Promise>} promises An array of promises.
+   * @return {angular.core.Promise} Returns a single promise that will be resolved with an array of values,
    *   each value coresponding to the promise at the same index in the `promises` array. If any of
    *   the promises is resolved with a rejection, this resulting promise will be resolved with the
    *   same rejection.

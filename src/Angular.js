@@ -10,13 +10,17 @@ goog.provide('angular');
  * @function
  *
  * @description Converts the specified string to lowercase.
- * @param {?string} string String to be converted to lowercase.
- * @returns {string|null} Lowercased string.
+ * @param {string=} string String to be converted to lowercase.
+ * @returns {string|undefined} Lowercased string.
  */
 var lowercase = function(string) {
   return isString(string) ? string.toLowerCase() : string;
 };
 
+/**
+ * @param {string=} s String to be converted to uppercase.
+ * @returns {string|undefined} Uppercased string.
+ */
 var manualLowercase = function(s) {
   return isString(s)
       ? s.replace(/[A-Z]/g, function(ch) {return String.fromCharCode(ch.charCodeAt(0) | 32);})
@@ -30,13 +34,17 @@ var manualLowercase = function(s) {
  * @function
  *
  * @description Converts the specified string to uppercase.
- * @param {?string} string String to be converted to uppercase.
- * @returns {string|null} Uppercased string.
+ * @param {string=} string String to be converted to uppercase.
+ * @returns {string|undefined} Uppercased string.
  */
 var uppercase = function(string) {
   return isString(string) ? string.toUpperCase() : string;
 };
 
+/**
+ * @param {string=} s String to be converted to uppercase.
+ * @returns {string|undefined} Uppercased string.
+ */
 var manualUppercase = function(s) {
   return isString(s)
       ? s.replace(/[a-z]/g, function(ch) {return String.fromCharCode(ch.charCodeAt(0) & ~32);})
@@ -129,6 +137,12 @@ function sortedKeys(obj) {
   return keys.sort();
 }
 
+/**
+ * @param {Object} obj
+ * @param {function(*, string)} iterator
+ * @param {Object=} context
+ * @return {*}
+ */
 function forEachSorted(obj, iterator, context) {
   var keys = sortedKeys(obj);
   for ( var i = 0; i < keys.length; i++) {
@@ -206,7 +220,11 @@ function extend(dst, src) {
 angular.extend = extend;
 
 
-
+/**
+ * @param {Object} parent
+ * @param {Object=} extra
+ * @return {Object}
+ */
 function inherit(parent, extra) {
   return extend(new (extend(function() {}, {prototype:parent}))(), extra);
 }

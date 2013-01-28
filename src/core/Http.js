@@ -40,3 +40,21 @@ angular.core.HttpPromise = function() {};
  * @return {angular.core.Promise.<T>}
  */
 angular.core.HttpPromise.prototype.success = function(successCallback, errorCallback) {};
+
+
+
+/**
+ * @typedef {{
+ *   method: (string|undefined),
+ *   url: (string|undefined),
+ *   params: (Object.<string, string|Object>|undefined),
+ *   data:  (Object|string|undefined),
+ *   headers: (Object|undefined),
+ *   transformRequest: (Function|undefined),
+ *   transformResponse: (Function|undefined),
+ *   cache: (angular.core.Cache|boolean|undefined),
+ *   timeout: (number|undefined),
+ *   withCredentials: (boolean|undefined)
+ * }}
+ */
+angular.core.HttpConfig;

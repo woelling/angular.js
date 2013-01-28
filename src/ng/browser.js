@@ -22,11 +22,10 @@ angular.core.module.provider('$browser', $BrowserProvider);
  * the real browser apis.
  */
 /**
- * @param {object} window The global window object.
- * @param {object} document jQuery wrapped document.
- * @param {function()} XHR XMLHttpRequest constructor.
- * @param {object} $log console.log or an object with the same interface.
- * @param {object} $sniffer $sniffer service
+ * @param {Object} window The global window object.
+ * @param {Object} document jQuery wrapped document.
+ * @param {Object} $log console.log or an object with the same interface.
+ * @param {Object} $sniffer $sniffer service
  * @constructor
  */
 function Browser(window, document, $log, $sniffer) {
@@ -113,7 +112,7 @@ function Browser(window, document, $log, $sniffer) {
 
   /**
    * @param {number} interval How often should browser call poll functions (ms)
-   * @param {function()} setTimeout Reference to a real or fake `setTimeout` function.
+   * @param {function(Function, number)} setTimeout Reference to a real or fake `setTimeout` function.
    *
    * @description
    * Configures the poller to run in the specified intervals, using the specified
@@ -150,7 +149,7 @@ function Browser(window, document, $log, $sniffer) {
    * NOTE: this api is intended for use only by the $location service. Please use the
    * {@link ng.$location $location service} to change url.
    *
-   * @param {string} url New url (when used as setter)
+   * @param {string=} url New url (when used as setter)
    * @param {boolean=} replace Should new url replace current history record ?
    */
   self.url = function(url, replace) {
@@ -240,7 +239,7 @@ function Browser(window, document, $log, $sniffer) {
    * Returns current <base href>
    * (always relative - without domain)
    *
-   * @returns {string=}
+   * @returns {string}
    */
   self.baseHref = function() {
     var href = baseElement.attr('href');
@@ -286,10 +285,6 @@ function Browser(window, document, $log, $sniffer) {
           if (cookieLength > 4096) {
             $log.warn("Cookie '"+ name +"' possibly not set or overflowed because it was too large ("+
               cookieLength + " > 4096 bytes)!");
-          }
-          if (lastCookies.length > 20) {
-            $log.warn("Cookie '"+ name +"' possibly not set or overflowed because too many cookies " +
-              "were already set (" + lastCookies.length + " > 20 )");
           }
         }
       }
@@ -361,6 +356,9 @@ function Browser(window, document, $log, $sniffer) {
 
 }
 
+/**
+ * @constructor
+ */
 function $BrowserProvider(){
   this.$get = ['$window', '$log', '$sniffer', '$document',
       function( $window,   $log,   $sniffer,   $document){

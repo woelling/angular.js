@@ -35,6 +35,11 @@ function stripHash(url) {
 }
 
 
+/**
+ * @param {string} url
+ * @param {Object=} obj
+ * @return {*}
+ */
 function matchUrl(url, obj) {
   var match = URL_MATCH.exec(url);
 
@@ -166,7 +171,8 @@ function LocationUrl(url, pathPrefix, appBaseUrl) {
  *
  * @constructor
  * @param {string} url Legacy url
- * @param {string} hashPrefix Prefix for hash part (containing path and search)
+ * @param {string=} hashPrefix Prefix for hash part (containing path and search)
+ * @param {string=} appBaseUrl application base URL
  */
 function LocationHashbangUrl(url, hashPrefix, appBaseUrl) {
   var basePath;
@@ -258,7 +264,8 @@ LocationUrl.prototype = {
    * Change path, search and hash, when called with parameter and return `$location`.
    *
    * @param {string=} url New url without base prefix (e.g. `/path?a=b#hash`)
-   * @return {string} url
+   * @param {boolean=} replace Replace URL history if truthy.
+   * @return {string|LocationUrl} url
    */
   url: function(url, replace) {
     if (isUndefined(url))
@@ -348,11 +355,11 @@ LocationUrl.prototype = {
    *
    * Change search part when called with parameter and return `$location`.
    *
-   * @param {string|object<string,string>=} search New search params - string or hash object
+   * @param {(string|Object.<string,string>)=} search New search params - string or hash object
    * @param {string=} paramValue If `search` is a string, then `paramValue` will override only a
    *    single search parameter. If the value is `null`, the parameter will be deleted.
    *
-   * @return {string} search
+   * @return {string|LocationUrl} search
    */
   search: function(search, paramValue) {
     if (isUndefined(search))
@@ -385,6 +392,7 @@ LocationUrl.prototype = {
    * Change hash fragment when called with parameter and return `$location`.
    *
    * @param {string=} hash New hash fragment
+   * @param {boolean=} value
    * @return {string} hash
    */
   hash: locationGetterSetter('$$hash', identity),
@@ -408,6 +416,7 @@ LocationHashbangUrl.prototype = inherit(LocationUrl.prototype);
 
 /**
  * @constructor
+ * @extends {LocationHashbangUrl}
  */
 function LocationHashbangInHtml5Url(url, hashPrefix, appBaseUrl, baseExtra) {
   LocationHashbangUrl.apply(this, arguments);
@@ -476,6 +485,7 @@ function locationGetterSetter(property, preprocess) {
  * @name ng.$locationProvider
  * @description
  * Use the `$locationProvider` to configure how the application deep linking paths are stored.
+ * @constructor
  */
 function $LocationProvider(){
   var hashPrefix = '',

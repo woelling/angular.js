@@ -46,7 +46,7 @@ function parseHeaders(headers) {
  * @see parseHeaders
  *
  * @param {(string|Object)} headers Headers to provide access to.
- * @returns {function(string=)} Returns a getter function which if called with:
+ * @returns {function(string=):(Object|string|null)} Returns a getter function which if called with:
  *
  *   - if called with single an argument returns a single header value or null
  *   - if called with no arguments returns an object containing all headers.
@@ -54,8 +54,12 @@ function parseHeaders(headers) {
 function headersGetter(headers) {
   var headersObj = isObject(headers) ? headers : undefined;
 
+  /**
+   * @param {string=} name
+   * @return {Object|string|null}
+   */
   return function(name) {
-    if (!headersObj) headersObj =  parseHeaders(headers);
+    if (!headersObj) headersObj =  parseHeaders(/** @type {string} */(headers));
 
     if (name) {
       return headersObj[lowercase(name)] || null;
@@ -72,13 +76,16 @@ function headersGetter(headers) {
  * This function is used for both request and response transforming
  *
  * @param {*} data Data to transform.
- * @param {function(string=)} headers Http headers getter fn.
- * @param {(function|Array.<function>)} fns Function or an array of functions.
+ * @param {function(string=):(Object|string)} headers Http headers getter fn.
+ * @param {(Function|Array.<Function>)} fns Function or an array of functions.
  * @returns {*} Transformed data.
  */
 function transformData(data, headers, fns) {
-  if (isFunction(fns))
-    return fns(data, headers);
+  if (isFunction(fns)) {
+    /** @type {function(*, function(string=):(Object|string)):*} */
+    var fn = /** @type {function(*, function(string=):(Object|string)):*} */(fns);
+    return fn(data, headers);
+  }
 
   forEach(fns, function(fn) {
     data = fn(data, headers);
@@ -93,6 +100,9 @@ function isSuccess(status) {
 }
 
 
+/**
+ * @constructor
+ */
 function $HttpProvider() {
   var JSON_START = /^\s*(\[|\{[^\{])/,
       JSON_END = /[\}\]]\s*$/,
@@ -105,7 +115,7 @@ function $HttpProvider() {
         // strip json vulnerability protection prefix
         data = data.replace(PROTECTION_PREFIX, '');
         if (JSON_START.test(data) && JSON_END.test(data))
-          data = fromJson(data, true);
+          data = fromJson(data);
       }
       return data;
     }],
@@ -368,7 +378,7 @@ function $HttpProvider() {
      * cookie with {@link http://en.wikipedia.org/wiki/Rainbow_table salt for added security}.
      *
      *
-     * @param {object} config Object describing the request to be made and how it should be
+     * @param {angular.core.HttpConfig} config Object describing the request to be made and how it should be
      *    processed. The object has following properties:
      *
      *    - **method** – `{string}` – HTTP method (e.g. 'GET', 'POST', etc)
@@ -394,7 +404,7 @@ function $HttpProvider() {
      *    - **responseType** - `{string}` - see {@link
      *      https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest#responseType requestType}.
      *
-     * @returns {HttpPromise} Returns a {@link ng.$q promise} object with the
+     * @returns {angular.core.HttpPromise} Returns a {@link ng.$q promise} object with the
      *   standard `then` method and two http specific methods: `success` and `error`. The `then`
      *   method takes two arguments a success and an error callback which will be called with a
      *   response object. The `success` and `error` methods take a single argument - a function that
@@ -643,6 +653,9 @@ function $HttpProvider() {
     return $http;
 
 
+    /**
+     * @param {...string} names
+     */
     function createShortMethods(names) {
       forEach(arguments, function(name) {
         $http[name] = function(url, config) {
@@ -655,7 +668,10 @@ function $HttpProvider() {
     }
 
 
-    function createShortMethodsWithData(name) {
+    /**
+     * @param {...string} names
+     */
+    function createShortMethodsWithData(names) {
       forEach(arguments, function(name) {
         $http[name] = function(url, data, config) {
           return $http(extend(config || {}, {
@@ -673,6 +689,10 @@ function $HttpProvider() {
      *
      * !!! ACCESSES CLOSURE VARS:
      * $httpBackend, defaults, $log, $rootScope, defaultCache, $http.pendingRequests
+     *
+     * @param {angular.core.HttpConfig} config
+     * @param {*} reqData
+     * @param {Object} reqHeaders
      */
     function sendReq(config, reqData, reqHeaders) {
       var deferred = $q.defer(),
@@ -769,9 +789,9 @@ function $HttpProvider() {
           forEachSorted(params, function(value, key) {
             if (value == null || value == undefined) return;
             if (isObject(value)) {
-              value = toJson(value);
+              value = toJson(/** @type {Object}*/(value));
             }
-            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+            parts.push(encodeURIComponent(key) + '=' + encodeURIComponent(/** @type {string} */(value)));
           });
           return url + ((url.indexOf('?') == -1) ? '?' : '&') + parts.join('&');
         }

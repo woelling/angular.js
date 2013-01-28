@@ -17,19 +17,20 @@ angular.core.module.provider('$templateCache', $TemplateCacheProvider);
  *
  *
  * @param {string} cacheId Name or id of the newly created cache.
- * @param {object=} options Options object that specifies the cache behavior. Properties:
+ * @param {Object=} options Options object that specifies the cache behavior. Properties:
  *
  *   - `{number=}` `capacity` — turns the cache into LRU cache.
  *
- * @returns {object} Newly created cache object with the following set of methods:
+ * @returns {Object} Newly created cache object with the following set of methods:
  *
- * - `{object}` `info()` — Returns id, size, and options of cache.
+ * - `{Object}` `info()` — Returns id, size, and options of cache.
  * - `{void}` `put({string} key, {*} value)` — Puts a new key-value pair into the cache.
  * - `{{*}}` `get({string} key)` — Returns cached value for `key` or undefined for cache miss.
  * - `{void}` `remove({string} key)` — Removes a key-value pair from the cache.
  * - `{void}` `removeAll()` — Removes all cached values.
  * - `{void}` `destroy()` — Removes references to this cache from $cacheFactory.
  *
+ * @constructor
  */
 function $CacheFactoryProvider() {
 
@@ -51,6 +52,11 @@ function $CacheFactoryProvider() {
 
       return caches[cacheId] = {
 
+        /**
+         * @this Object
+         * @param {string} key
+         * @param {*} value
+         */
         put: function(key, value) {
           var lruEntry = lruHash[key] || (lruHash[key] = {key: key});
 
@@ -170,6 +176,7 @@ function $CacheFactoryProvider() {
  *
  * See {@link ng.$cacheFactory $cacheFactory}.
  *
+ * @constructor
  */
 function $TemplateCacheProvider() {
   this.$get = ['$cacheFactory', function($cacheFactory) {

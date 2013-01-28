@@ -406,6 +406,9 @@ LocationUrl.prototype = {
 
 LocationHashbangUrl.prototype = inherit(LocationUrl.prototype);
 
+/**
+ * @constructor
+ */
 function LocationHashbangInHtml5Url(url, hashPrefix, appBaseUrl, baseExtra) {
   LocationHashbangUrl.apply(this, arguments);
 

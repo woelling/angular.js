@@ -88,7 +88,7 @@ function $InterpolateProvider() {
      * @param {boolean=} mustHaveExpression if set to true then the interpolation string must have
      *    embedded expression in order to return an interpolation function. Strings with no
      *    embedded expression will return null for the interpolation function.
-     * @returns {function(Object)} an interpolation function which is used to compute the interpolated
+     * @returns {function(Object)|undefined} an interpolation function which is used to compute the interpolated
      *    string. The function has these parameters:
      *
      *    * `context`: an object against which any expressions embedded in the strings are evaluated

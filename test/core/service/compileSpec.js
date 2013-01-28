@@ -180,22 +180,39 @@ describe('dte.compiler', function() {
       };
       Two.$transclude = '.';
 
-      $provide.value({ 'directive:[one]': One, 'directive:[two]': Two });
+      var Three = function($anchor) {
+        this.attach = function(scope) {
+          var block = $anchor.newBlock();
+          var childScope = scope.$new();
+
+          childScope.test = childScope.test + 1;
+          block.insertAfter($anchor);
+          block.attach(childScope);
+        }
+      };
+      Three.$transclude = '.';
+
+      $provide.value({
+        'directive:[one]': One,
+        'directive:[two]': Two,
+        'directive:[three]': Three
+      });
     });
     inject(function($compile) {
       var element = $(
-          '<div><span two one>{{test}}</span></div>');
+          '<div><b>prefix<span two one three>{{test}}</span>suffix</b></div>');
       var block = $compile(element)(element);
 
       $rootScope.test = 0;
       block.attach($rootScope);
       $rootScope.$apply();
 
-      expect(htmlIdClean(element)).toEqual(
+      expect(element.length).toEqual(1);
+      expect(STRINGIFY(element[0])).toEqual(
         '<div>' +
-        '<!--ANCHOR: one-->' +
-        '<!--ANCHOR: two-->' +
-        '<span two="" one="">2</span>' +
+          '<b>prefix' +
+            '<!--ANCHOR: one--><!--ANCHOR: two--><!--ANCHOR: three--><span two="" one="" three="">3</span>' +
+          'suffix</b>' +
         '</div>');
     });
   });

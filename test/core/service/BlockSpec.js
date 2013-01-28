@@ -86,7 +86,7 @@ describe('Block', function() {
         expect(b.previous).toBe(null);
       });
 
-      it('should remove the middle block', function() {
+      it('should remove child blocks from parent pseudo black', function() {
         a.remove();
         expect($rootElement.html()).toEqual('<!-- anchor --><span>B</span>b');
         expect(anchor.next).toBe(b);
@@ -95,6 +95,32 @@ describe('Block', function() {
         expect(a.previous).toBe(null);
         expect(b.next).toBe(null);
         expect(b.previous).toBe(anchor);
+      });
+
+      it('should remove', function() {
+        a.remove();
+        b.remove();
+
+        var outterAnchor;
+        function Directive($anchor) {
+          outterAnchor = $anchor;
+        }
+
+        var innerBlockType = $blockTypeFactory('<b>text</b>', []);
+        var outerBlockType = $blockTypeFactory('<!--start--><!--end-->', [
+          0, [new angular.core.DirectiveDef(Directive, '', {'': innerBlockType})], null
+        ]);
+
+        var outterBlock = outerBlockType();
+
+        outterBlock.insertAfter(anchor);
+        outterAnchor.newBlock().insertAfter(outterAnchor);
+
+        expect($rootElement.text()).toEqual('text');
+
+        outterBlock.remove();
+
+        expect($rootElement.text()).toEqual('');
       });
     });
 

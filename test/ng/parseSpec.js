@@ -476,6 +476,12 @@ describe('parser', function() {
       });
 
 
+      it('should support trinary operators', function() {
+        expect(scope.$eval('true?1:2')).toBe(true?1:2);
+        expect(scope.$eval('false?1:true?2:3')).toBe(false?1:true?2:3);
+      });
+
+
       describe('promises', function() {
         var deferred, promise, q;
 

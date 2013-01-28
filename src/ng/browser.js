@@ -27,6 +27,7 @@ angular.core.module.provider('$browser', $BrowserProvider);
  * @param {function()} XHR XMLHttpRequest constructor.
  * @param {object} $log console.log or an object with the same interface.
  * @param {object} $sniffer $sniffer service
+ * @constructor
  */
 function Browser(window, document, $log, $sniffer) {
   var self = this,
@@ -271,7 +272,7 @@ function Browser(window, document, $log, $sniffer) {
    *   <li>cookies(name) -> the same as (name, undefined) == DELETES (no one calls it right now that way)</li>
    * </ul>
    *
-   * @returns {Object} Hash of all cookies (if called without any parameter)
+   * @returns {Object|undefined} Hash of all cookies (if called without any parameter)
    */
   self.cookies = function(name, value) {
     var cookieLength, cookieArray, cookie, i, index;

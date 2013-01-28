@@ -16,6 +16,7 @@ angular.core.DirectivePositions = TYPE('angular.core.DirectivePositions', functi
   if (!array) return false;
 
   VAR(array).is(Array);
+  ASSERT_EQ(3 * Math.floor(array.length / 3), array.length);
   for (var i = 0, ii = array.length; i < ii;) {
     ASSERT(array[i] >= 0);
     VAR(array[i++]).is(Number);
@@ -50,6 +51,7 @@ angular.core.Compiler.prototype.compileBlock = function(domCursor, templateCurso
     ARG('blockCaches').is(Array.of(angular.core.BlockCache)),
     ARG('useExistingDirectiveInfos').is(Array.of(angular.core.DirectiveInfo), undefined));
   ASSERT_EQ(STRINGIFY(domCursor.nodeList()), STRINGIFY(templateCursor.nodeList()));
+
 
   var LOG = FN_TRACE('compileBlock', arguments);
 

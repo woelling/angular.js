@@ -324,7 +324,9 @@ angular.core.Block.attrAccessorFactory = function(element, name) {
    */
   return function(value) {
     return arguments.length
-        ? element.setAttribute(name, /** @type {string} */ (value)) || value
+        ? value
+            ? element.setAttribute(name, /** @type {string} */ (value))
+            : element.removeAttribute(name)
         : element.getAttribute(name);
   };
 };
@@ -462,6 +464,9 @@ angular.core.Block.prototype.attach = function(scope) {
   // Attach directives
   for(var directives = this.directives, i = 0, ii = directives.length; i < ii; i++) {
     try {
+      for (var j = 0, jj = this.elements.length; j < jj; j++) {
+        this.elements[j].$scope = scope;
+      }
       if (directives[i].attach) directives[i].attach(scope);
     } catch(e) {
       this.$exceptionHandler(e);
@@ -550,6 +555,12 @@ angular.core.Block.prototype.remove = function() {
 
   function removeDomElements() {
     for(var j = 0, jj = elements.length; j < jj; j++) {
+      var current = elements[j],
+          next = elements[j+1];
+
+      while(next && current.nextSibling != next) {
+        parent.removeChild(current.nextSibling);
+      }
       parent.removeChild(elements[j]);
     }
   }

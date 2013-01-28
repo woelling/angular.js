@@ -58,7 +58,7 @@ function lex(text, csp){
          (token=tokens[tokens.length-1])) {
         token.json = token.text.indexOf('.') == -1;
       }
-    } else if (is('(){}[].,;:')) {
+    } else if (is('(){}[].,;:?')) {
       tokens.push({
         index:index,
         text:ch,
@@ -438,7 +438,7 @@ function parser(text, json, $filter, csp){
   }
 
   function _assignment() {
-    var left = logicalOR();
+    var left = trinaryOp();
     var right;
     var token;
     if ((token = expect('='))) {
@@ -446,12 +446,29 @@ function parser(text, json, $filter, csp){
         throwError("implies assignment but [" +
           text.substring(0, token.index) + "] can not be assigned to", token);
       }
-      right = logicalOR();
+      right = trinaryOp();
       return function(self, locals){
         return left.assign(self, right(self, locals), locals);
       };
     } else {
       return left;
+    }
+  }
+
+  function trinaryOp() {
+    var condition = logicalOR();
+    var token;
+
+    if ((token = expect('?'))) {
+      var truthy = trinaryOp();
+      consume(':');
+      var falsey = trinaryOp();
+
+      return function(self, locals) {
+        return condition(self, locals) ? truthy(self, locals) : falsey (self, locals);
+      }
+    } else {
+      return condition;
     }
   }
 
@@ -863,7 +880,7 @@ function getterFn(path, csp) {
  *
  * TODO(vojta): move these params to service (not provider)
  * @serviceParam {string} expression String expression to compile.
- * @returns {function(Object, Object)} a function which represents the compiled expression:
+ * @returns {function(Object, Object)|undefined} a function which represents the compiled expression:
  *
  *    * `context`: an object against which any expressions embedded in the strings are evaluated
  *      against (Topically a scope object).

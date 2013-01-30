@@ -11,8 +11,8 @@ describe('directive controller', function() {
     return function($compile, $rootScope) {
       element = $('<div><div controller="MyCtrl"><span bind="name"></span></div></div>');
 
-      var template = $compile([element[0]]);
-      var block = template([element[0]]);
+      var blockType = $compile(element);
+      var block = blockType(element);
 
       block.attach($rootScope);
       $rootScope.$apply();

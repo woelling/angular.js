@@ -20,12 +20,12 @@ goog.require('angular.core.Directive');
  * }}
  */
 angular.core.DirectiveInfo = TYPE('angular.core.DirectiveInfo', function(info) {
+  // TODO: which of these do we actually need? Destroy the rest.
   return TYPE.verifyStruct(info, {
      selector: String,
      element: Node,
      name: String,
      value: String,
-     childNodes: angular.core.NodeList,
      DirectiveType: angular.core.DirectiveType
   });
 });

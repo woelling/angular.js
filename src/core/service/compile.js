@@ -18,8 +18,9 @@ angular.core.DirectivePositions = TYPE('angular.core.DirectivePositions', functi
   VAR(array).is(Array);
   ASSERT_EQ(3 * Math.floor(array.length / 3), array.length);
   for (var i = 0, ii = array.length; i < ii;) {
-    ASSERT(array[i] >= 0);
-    VAR(array[i++]).is(Number);
+    VAR(array[i]).is(Number);
+    ASSERT(array[i] >= 0, array[i]);
+    i++
     VAR(array[i++]).is(Array.of(angular.core.DirectiveDef), null);
     VAR(array[i++]).is(angular.core.DirectivePositions, null);
   }
@@ -56,10 +57,10 @@ angular.core.Compiler.prototype.compileBlock = function(domCursor, templateCurso
   var LOG = FN_TRACE('compileBlock', arguments);
 
   var directivePositions = null; // don't pre-create to create spars tree and prevent GC pressure.
+  var cursorAlreadyAdvanced;
 
   ASSERT(domCursor.isValid());
   ASSERT(templateCursor.isValid());
-  var cursorAlreadyAdvanced;
 
   do {
     LOG(domCursor, templateCursor);
@@ -78,6 +79,29 @@ angular.core.Compiler.prototype.compileBlock = function(domCursor, templateCurso
       var DirectiveType = directiveInfo.DirectiveType;
       var blockTypes = null;
 
+      if (DirectiveType.$generate) {
+        var nodeList = domCursor.nodeList();
+        var generatedDirectives = DirectiveType.$generate(directiveInfo.value, nodeList);
+
+        for (var k = 0, kk = generatedDirectives.length; k < kk; k++) {
+          var generatedSelector = generatedDirectives[k][0];
+          var generatedValue = generatedDirectives[k][1];
+          /** @type {angular.core.DirectiveType} */
+          var generatedDirectiveType = this.$directiveInjector.get(generatedSelector);
+          /** @type {angular.core.DirectiveInfo} */
+          var generatedDirectiveInfo = {
+            selector: generatedSelector,
+            element: nodeList[0],
+            name: generatedDirectiveType.$name || generatedSelector,
+            value: generatedValue,
+            DirectiveType: generatedDirectiveType
+          };
+
+          VAR(generatedDirectiveInfo).is(angular.core.DirectiveInfo);
+
+          directiveInfos.push(generatedDirectiveInfo);
+        }
+      }
       if (DirectiveType.$transclude) {
         var remaindingDirectives = directiveInfos.slice(j + 1);
         var transclusion = this.compileTransclusion(DirectiveType.$transclude,
@@ -86,7 +110,6 @@ angular.core.Compiler.prototype.compileBlock = function(domCursor, templateCurso
 
         if (transclusion.blockCache) {
           blockCaches.push(transclusion.blockCache);
-          cursorAlreadyAdvanced = true;
         }
         blockTypes = transclusion.blockTypes;
 
@@ -114,12 +137,9 @@ angular.core.Compiler.prototype.compileBlock = function(domCursor, templateCurso
       if (!directivePositions) directivePositions = [];
       var directiveOffsetIndex = templateCursor.index;
 
-      if (cursorAlreadyAdvanced) {
-        directiveOffsetIndex--;
-      }
       directivePositions.push(directiveOffsetIndex, directiveDefs, childDirectivePositions);
     }
-  } while (cursorAlreadyAdvanced || (templateCursor.microNext() && domCursor.microNext()));
+  } while (templateCursor.microNext() && domCursor.microNext());
 
   return directivePositions;
 };

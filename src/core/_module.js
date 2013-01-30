@@ -45,6 +45,7 @@ angular.core.module = angular.module('core', []).
     service('$compiler', angular.core.Compiler).
     directive('[bind]', angular.core.directive.Bind).
     directive('[repeat]', angular.core.directive.Repeat).
+    directive('[controller]', angular.core.directive.Controller).
     directive('[click]', angular.core.directive.Click).
     directive('[mouseover]', angular.core.directive.OnMouseOver).
     directive(angular.core.directive.TextInterpolation.$selector, angular.core.directive.TextInterpolation).

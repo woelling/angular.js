@@ -125,11 +125,11 @@ angular.core.directive.Repeat = function Repeat($anchor, $value, $service_$parse
   itemSetter = $service_$parse($value[0]).assign;
 
   this.attach = function(scope) {
-    var previousBlockMap = new HashMap();
+    var previousBlockMap = new angular.HashMap();
 
     scope.$watch(function() {
       var collection = collectionGetter(scope) || EMPTY_ARRAY,
-          currentBlockMap = new HashMap(),
+          currentBlockMap = new angular.HashMap(),
           i, ii = collection.length,
           value, block, previousBlock,
           iterationScope;
@@ -181,28 +181,26 @@ angular.core.directive.Repeat.$transclude = '.';
 angular.core.directive.Repeat.$priority = 1000;
 
 
-angular.core.directive.Controller = function($injector) {
-  WrapperController.$inject = ['$value', '$anchor'];
-  WrapperController.$transclude = '.';
+angular.core.directive.Controller = function($service_$injector, $anchor, $value) {
 
   this.attach = function(scope) {
     var childScope = scope.$new();
 
     // create new instance (block) and attach it
-    var block = anchor.newBlock();
+    var block = $anchor.newBlock();
     block.attach(childScope);
-    block.insertAfter(anchor);
+    block.insertAfter($anchor);
 
     // TODO(vojta): use locals() once it's fixed
-    var localInjector = $injector.load([['$provide', function($provide) {
+    var localInjector = $service_$injector.load([['$provide', function($provide) {
       $provide.value('$scope', childScope);
     }]]);
 
     // instantiate the controller
-    localInjector.get('controller:' + value);
+    localInjector.get('controller:' + $value);
   };
 };
-angular.annotate.$inject(['$value', '$anchor'], angular.core.directive.Controller);
-angular.core.directive.Controler.$transclude = '.';
+angular.annotate.$inject(['$service_$injector', '$anchor', '$value'], angular.core.directive.Controller);
+angular.core.directive.Controller.$transclude = '.';
 
 

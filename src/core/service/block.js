@@ -223,7 +223,7 @@ angular.core.module.factory('$Block', ['$exceptionHandler', '$Anchor', '$directi
         // Attach directives
         for(var directives = this.directives, i = 0, ii = directives.length; i < ii; i++) {
           try {
-            directives[i].attach(scope);
+            if (directives[i].attach) directives[i].attach(scope);
           } catch(e) {
             $exceptionHandler(e);
           }

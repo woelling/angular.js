@@ -6,6 +6,7 @@ goog.provide('angular.Injectable');
 goog.provide('angular.Provide');
 
 goog.require('angular.apis');
+goog.require('angular.HashMap');
 
 
 /**
@@ -643,6 +644,7 @@ function createInjector(modulesToLoad) {
 
   goog.inherits(LocalsInjector, Injector);
 
+  /** @override */
   LocalsInjector.prototype.get = function(name) {
     var locals = this.$$locals,
         resolve,
@@ -671,10 +673,12 @@ function createInjector(modulesToLoad) {
 
   goog.inherits(LimitInjector, Injector);
 
+  /** @override */
   LimitInjector.prototype.get = function(name) {
     return this.$$parent.get(this.$$prefix + name);
   };
 
+  /** @override */
   LimitInjector.prototype.enumerate = function() {
     var list = [],
         prefix = this.$$prefix;
@@ -692,7 +696,7 @@ function createInjector(modulesToLoad) {
   function TerminalInjector() {
     this.$$providers = {};
     this.$$instances = {};
-    this.$$modules = new HashMap();
+    this.$$modules = new angular.HashMap();
   }
 
   TerminalInjector.prototype = {
@@ -1032,6 +1036,7 @@ function createInjector(modulesToLoad) {
     function constant(name, value) {
       providers[name] = [value];
       instances[name] = [value];
+      return null;
     }
 
 

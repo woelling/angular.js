@@ -127,6 +127,7 @@ factory('directive:[ngModel]', ['$parse', function($parse) {
 }]).
 factory('directive:[repeat]', function($parse) {
   RepeatController.$transclude = '.';
+  RepeatController.$priority = 1000;
   RepeatController.$inject = ['$anchor', '$value'];
   /**
    * @param {angular.core.Anchor} anchor

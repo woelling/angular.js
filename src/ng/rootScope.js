@@ -499,7 +499,7 @@ angular.core.module.provider('$rootScope', function $RootScopeProvider(){
          expect(scope.$eval(function(scope){ return scope.a + scope.b; })).toEqual(3);
      * </pre>
      *
-     * @param {(string|function())=} expr An angular expression to be executed.
+     * @param {(string|function()|null)=} expr An angular expression to be executed.
      * @param {Object=} locals
      *
      *    - `string`: execute using the rules as defined in  {@link guide/expression expression}.

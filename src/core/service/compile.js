@@ -7,6 +7,12 @@ goog.require('angular.core.$template');
 goog.require('angular.core.$interpolate');
 goog.require('angular.core.Select');
 
+/**
+ * TODO: define
+ * @typedef Array
+ */
+var ElementDirectivesDecl;
+
 angular.core.module.factory('$compile', ['$template', '$directiveInjector',
   function($template, $directiveInjector) {
     /**
@@ -30,55 +36,78 @@ angular.core.module.factory('$compile', ['$template', '$directiveInjector',
     /**
      * @param {NodeList|Array.<Element>} elements
      * @param {Array} blockDirectives
+     * @param {Array.<ElementDirectivesDecl>=} elementDirectivesDecls
      */
-    function walkDOM(elements, blockDirectives) {
+    function walkDOM(elements, blockDirectives, elementDirectivesDecls) {
       for(var i = 0, ii = elements.length; i < ii ; i++) {
         var node = elements[i],
-            directiveInfos = selector(node),
+            elementDirectivesDecl,
             compileChildren = true,
             nodeId = null;
 
-        // Resolve the Directive Controllers
-        for(var j = 0, jj = directiveInfos.length; j < jj; j++) {
-          var directiveInfo = directiveInfos[j];
+        if (elementDirectivesDecls) {
+          elementDirectivesDecl = elementDirectivesDecls[i];
+        } else {
+          elementDirectivesDecl =  selector(node);
 
-          directiveInfo.Directive = $directiveInjector.get(directiveInfo.selector);
+          // Resolve the Directive Controllers
+          for(var j = 0, jj = elementDirectivesDecl.length; j < jj; j++) {
+            var directiveDecl = elementDirectivesDecl[j];
+            var Directive  = $directiveInjector.get(directiveDecl.selector);
+
+            if (Directive.$generate) {
+              var generatedDirectives = Directive.$generate(directiveDecl.value);
+
+              for (var k = 0, kk = generatedDirectives.length; k < kk; k++) {
+                var generatedDirective = generatedDirectives[k],
+                    directiveInfo = shallowCopy(directiveDecl);
+
+                directiveInfo.selector = generatedDirective[0];
+                directiveInfo.name = generatedDirective[0];
+                directiveInfo.value = generatedDirective[1];
+
+                elementDirectivesDecl.push(directiveInfo);
+              }
+              jj = elementDirectivesDecl.length;
+            }
+
+            directiveDecl.Directive = Directive;
+          }
         }
 
         // Sort
-        directiveInfos.sort(priorityComparator);
+        elementDirectivesDecl.sort(priorityComparator);
 
         // process the directives
-        for(var k = 0, kk = directiveInfos.length; k < kk; k++) {
-          var directiveInfo = directiveInfos[k],
-              Directive = directiveInfo.Directive,
+        for(var k = 0, kk = elementDirectivesDecl.length; k < kk; k++) {
+          var directiveDecl = elementDirectivesDecl[k],
+              Directive = directiveDecl.Directive,
               childNodes,
               $transclude = Directive.$transclude,
               nodeId = null,
-              templates;
+              templates,
+              transcludedElementDirectivesDecl = null;
 
           if ($transclude) {
             var parent = node.parentNode,
                 ownerDocument = node.ownerDocument;
 
-            // stop further processing of directives and stop further compilation.
-            k = kk;
             compileChildren = false;
 
-            if (directiveInfo.pseudoElement) {
+            if (directiveDecl.pseudoElement) {
               // We have to point to the anchor element
               nodeId = markNode(node, i);
 
               // we have to remove the pseudo children.
-              childNodes = removeNodes(parent, directiveInfo.childNodes);
+              childNodes = removeNodes(parent, directiveDecl.childNodes);
               ii -= childNodes.length;
             } else if ($transclude == '.') {
               // We point to the transcluded element, but it will get replaced with pseudoelement.
               childNodes = [node];
               // create a bogus element
-              var pseudoStart = ownerDocument.createComment('[' + directiveInfo.name +
-                  (directiveInfo.value ? '=' + directiveInfo.value : directiveInfo.value) + ']');
-              var pseudoEnd = ownerDocument.createComment('[/' + directiveInfo.name + ']');
+              var pseudoStart = ownerDocument.createComment('[' + directiveDecl.name +
+                  (directiveDecl.value ? '=' + directiveDecl.value : directiveDecl.value) + ']');
+              var pseudoEnd = ownerDocument.createComment('[/' + directiveDecl.name + ']');
 
               if (parent) {
                 // if we have a parent then replace current node with pseudo nodes
@@ -92,21 +121,25 @@ angular.core.module.factory('$compile', ['$template', '$directiveInjector',
               }
               nodeId = markNode(pseudoStart, 0);
               i++, ii++; // compensate for new bogus ending element;
-              // remove the element which triggered the selector
-              node.removeAttribute && node.removeAttribute(directiveInfo.name);
+              transcludedElementDirectivesDecl = [ elementDirectivesDecl.slice(k + 1) ];
             } else {
-              var anchor = ownerDocument.createComment('Anchor:' + directiveInfo.name);
+              var anchor = ownerDocument.createComment('Anchor:' + directiveDecl.name);
               // clean transclusion content.
               childNodes = removeNodes(node, node.childNodes);
               node.appendChild(anchor);
               nodeId = markNode(anchor, 0);
             }
+            // stop further processing of directives and stop further compilation.
+            k = kk;
+
             // compute the node selector for the anchor
           } else {
             nodeId = markNode(node, i);
           }
-          templates = $transclude && compileTransclusions($transclude, childNodes || node.childNodes);
-          blockDirectives.push([nodeId, [Directive, directiveInfo.value, templates]]);
+          templates = $transclude &&
+              compileTransclusions($transclude, childNodes || node.childNodes,
+                  transcludedElementDirectivesDecl);
+          blockDirectives.push([nodeId, [Directive, directiveDecl.value, templates]]);
         }
 
 
@@ -129,9 +162,18 @@ angular.core.module.factory('$compile', ['$template', '$directiveInjector',
     }
 
 
-    function compileTransclusions(selector, childNodes) {
+    /**
+     * @param selector
+     * @param childNodes
+     * @param {Array.<ElementDirectivesDecl>} elementDirectivesDecls
+     * @return {*}
+     */
+    function compileTransclusions(selector, childNodes, elementDirectivesDecls) {
       if (selector == '.') {
-        return compile(childNodes);
+        var directives = [];
+
+        walkDOM(childNodes, directives, elementDirectivesDecls);
+        return $template(childNodes, directives);
       } else {
         var childSelector = angular.core.Selector(selector.split(','), '>'),
             templates = {};

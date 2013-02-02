@@ -43,6 +43,9 @@ describe('Selector', function() {
     expect(selector(e('<div directive=abc></div>'))).toEqual([
       {selector: '[directive]', value: 'abc', element: element, childNodes: element.childNodes, name: 'directive'}
     ]);
+    expect(selector(e('<div directive></div>'))).toEqual([
+      {selector: '[directive]', value: '', element: element, childNodes: element.childNodes, name: 'directive'}
+    ]);
   });
 
 

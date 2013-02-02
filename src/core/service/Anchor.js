@@ -28,7 +28,7 @@ angular.core.module.factory('$Anchor', ['$rootScope', function($rootScope) {
       deregisterWatch();
       $rootScope.$evalAsync(function() {
         while(existing.length) {
-          existing.pop().remove();
+          existing.shift().remove();
         }
       });
     });

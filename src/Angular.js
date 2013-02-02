@@ -570,6 +570,10 @@ function copy(source, destination){
 
 /**
  * Create a shallow copy of an object
+ * @template T
+ * @param {T} src
+ * @param {T=} dst
+ * @return {T}
  */
 function shallowCopy(src, dst) {
   dst = dst || {};

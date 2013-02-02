@@ -1,6 +1,8 @@
 'use strict';
 
 goog.provide('angular.apis');
+goog.provide('angular.HashQueueMap');
+goog.provide('angular.HashMap');
 
 /**
  * Computes a hash of an 'obj'.
@@ -114,3 +116,8 @@ HashQueueMap.prototype = {
     }
   }
 };
+
+
+angular.HashQueueMap = HashQueueMap;
+angular.HashMap = HashMap;
+

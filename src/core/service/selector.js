@@ -105,7 +105,7 @@ angular.core.Selector = function (selectors, startWith) {
       addDirective(directives, element, valueMap[''], name, value, pseudoElement);
     }
 
-    if (valueMap.hasOwnProperty(value)) {
+    if (value && valueMap.hasOwnProperty(value)) {
       addDirective(directives, element, valueMap[value], name, value, pseudoElement);
     }
   }

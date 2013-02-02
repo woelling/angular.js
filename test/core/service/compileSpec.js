@@ -10,7 +10,7 @@ describe('dte.compiler', function() {
     }
   }));
 
-  iit('should compile basic hello world', inject(function() {
+  it('should compile basic hello world', inject(function() {
     var element = angular.element('<div bind="name"></div>');
     var template = $compile(element);
 
@@ -150,7 +150,7 @@ describe('dte.compiler', function() {
       expect(element.text()).toEqual('when');
 
       $rootScope.name = 'abc';
-      $rootScope.$apply();
+      $rootScope.$apply()
       expect(element.text()).toEqual('default');
     }));
   });
@@ -198,7 +198,7 @@ describe('dte.compiler', function() {
         '<div class="__ng_ID">' +
           '<!--[one]-->' +
             '<!--[two]-->' +
-              '<span class="__ng_ID">2</span>' +
+              '<span two="" one="" class="__ng_ID">2</span>' +
             '<!--[/two]-->' +
           '<!--[/one]-->' +
         '</div>');
@@ -206,7 +206,7 @@ describe('dte.compiler', function() {
   });
 
 
-  describe('interpolation', function() {
+  describe("interpolation", function() {
     it('should interpolate attribute nodes', inject(function() {
       var element = angular.element('<div test="{{name}}"></div>');
       var template = $compile(element);
@@ -232,43 +232,30 @@ describe('dte.compiler', function() {
     }));
   });
 
-
-  describe('block instance declarations', function() {
-    function Block() {
-      this.attach = noop;
-    }
-    Block.$priority = 1000;
-    Block.$instance = true;
-
+  describe('directive generation', function() {
     beforeEach(module(function($provide) {
-      $provide.value('directive:[block]', Block);
+      function Generate() {};
+
+      Generate.$generate = function(value) {
+        expect(value).toEqual('abc');
+
+        return [['[bind]', 'name'], ['[repeat]', 'name in names']];
+      }
+
+      $provide.value('directive:[generate]', Generate);
     }));
 
-    iit('should attach to repeater', inject(function() {
-      var element = angular.element(
-          '<div>' +
-              '<span bind="title">title</span>' +
-              '<ul>' +
-                '<li block="0" repeat="item in items" mark="1">one</li>' +
-                '<li block="1" repeat="item in items" mark="2">two</li>' +
-              '</ul>' +
-          '</div>');
 
-      var blockInstance = new ng.core.BlockInst();
-      var template = $compile(element, blockInstance);
-      dump(element)
-      var block = template(element, blockInstance);
-
-      $rootScope.title = 'POST';
-      $rootScope.items = ['ONE', 'TWO'];
+    it('should generate directive from a directive', inject(function() {
+      var element = angular.element('<ul><li generate="abc"></li></ul>');
+      var template = $compile(element);
+      var block = template(element);
 
       block.attach($rootScope);
-      $rootScope.$digest();
+      $rootScope.names = ['james;', 'misko;'];
+      $rootScope.$apply();
 
-      expect(element.find('span').text()).toEqual('POST');
-      expect(element.find('ul').html()).toEqual(
-          '<li block="0" repeat="item in items" mark="1">one</li>' +
-          '<li block="1" repeat="item in items" mark="2">two</li>');
+      expect(element.text()).toEqual('james;misko;');
     }));
   });
 });

@@ -1,6 +1,7 @@
 'use strict';
 
 goog.provide('angular.module');
+goog.provide('angular.Module');
 
 goog.require('angular');
 
@@ -32,6 +33,10 @@ angular.Module = function(name, dependencies) {
   /** @type {Array} @private */
   this.runBlocks_ = [];
 
+  /**
+   * @provide {*} $provide
+   * @provide {angular.Injector} $injector
+   */
   this.$$configure = function($provide, $injector) {
     forEach(self.constants_, invoke($provide, $provide.value));
     forEach(self.values_, invoke($provide, $provide.value));
@@ -42,9 +47,13 @@ angular.Module = function(name, dependencies) {
       var fn = $injector.invoke(args[0], args[1]);
       fn && self.runBlocks_.push(fn);
     });
-    return ['$injector', function($injector) {
-      forEach(self.runBlocks_, invoke($injector, $injector.invoke));
-    }];
+    return ['$injector', 
+            /**
+             * @param {angular.Injector}  $injector injector.
+             */
+            function($injector) {
+              forEach(self.runBlocks_, invoke($injector, $injector.invoke));
+            }];
   };
   this.$$configure.$inject = ['$provide', '$injector'];
   this.$$configure.toString = function() {

@@ -1,5 +1,7 @@
 'use strict';
 
+goog.require('angular.core.$LogProvider');
+
 describe('$log', function() {
   var $window, logger, log, warn, info, error;
 
@@ -13,7 +15,7 @@ describe('$log', function() {
     info = function() { logger+= 'info;'; };
     error = function() { logger+= 'error;'; };
 
-    $provide.provider('$log', $LogProvider);
+    $provide.provider('$log', angular.core.$LogProvider);
     $provide.value('$exceptionHandler', angular.mock.rethrow);
     $provide.value('$window', $window);
   }));
@@ -91,7 +93,7 @@ describe('$log', function() {
       e.line = undefined;
       e.stack = undefined;
 
-      $log = new $LogProvider().$get[1]({console:{error:function() {
+      $log = new angular.core.$LogProvider().$get[1]({console:{error:function() {
         errorArgs = [].slice.call(arguments, 0);
       }}});
     });

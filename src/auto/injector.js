@@ -5,7 +5,6 @@ goog.provide('angular.Injector');
 goog.provide('angular.Injectable');
 goog.provide('angular.Provide');
 
-goog.require('angular.apis');
 goog.require('angular.HashMap');
 
 

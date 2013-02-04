@@ -1,5 +1,8 @@
 'use strict';
 
+goog.require('angular.core.LocationUrl');
+goog.require('angular.core.LocationHashbangUrl');
+
 /**
  * Create jasmine.Spy on given method, but ignore calls without arguments
  * This is helpful when need to spy only setter methods and ignore getters
@@ -25,7 +28,7 @@ xdescribe('$location', function() {
 
   describe('NewUrl', function() {
     beforeEach(function() {
-      url = new LocationUrl('http://www.domain.com:9877/path/b?search=a&b=c&d#hash');
+      url = new angular.core.LocationUrl('http://www.domain.com:9877/path/b?search=a&b=c&d#hash');
     });
 
 
@@ -132,16 +135,16 @@ xdescribe('$location', function() {
 
 
     it('should parse new url', function() {
-      url = new LocationUrl('http://host.com/base');
+      url = new angular.core.LocationUrl('http://host.com/base');
       expect(url.path()).toBe('/base');
 
-      url = new LocationUrl('http://host.com/base#');
+      url = new angular.core.LocationUrl('http://host.com/base#');
       expect(url.path()).toBe('/base');
     });
 
 
     it('should prefix path with forward-slash', function() {
-      url = new LocationUrl('http://server/a');
+      url = new angular.core.LocationUrl('http://server/a');
       url.path('b');
 
       expect(url.path()).toBe('/b');
@@ -150,7 +153,7 @@ xdescribe('$location', function() {
 
 
     it('should set path to forward-slash when empty', function() {
-      url = new LocationUrl('http://server');
+      url = new angular.core.LocationUrl('http://server');
       expect(url.path()).toBe('/');
       expect(url.absUrl()).toBe('http://server/');
     });
@@ -175,7 +178,7 @@ xdescribe('$location', function() {
 
 
     it('should prepend path with basePath', function() {
-      url = new LocationUrl('http://server/base/abc?a', '/base');
+      url = new angular.core.LocationUrl('http://server/base/abc?a', '/base');
       expect(url.path()).toBe('/abc');
       expect(url.search()).toEqual({a: true});
 
@@ -185,7 +188,7 @@ xdescribe('$location', function() {
 
 
     it('should throw error when invalid url given', function() {
-      url = new LocationUrl('http://server.org/base/abc', '/base');
+      url = new angular.core.LocationUrl('http://server.org/base/abc', '/base');
 
       expect(function() {
         url.$$parse('http://server.org/path#/path');
@@ -217,7 +220,7 @@ xdescribe('$location', function() {
 
 
       it('should decode special characters', function() {
-        url = new LocationUrl('http://host.com/a%20%3C%3E%23?i%20j=%3C%3E%23#x%20%3C%3E%23');
+        url = new angular.core.LocationUrl('http://host.com/a%20%3C%3E%23?i%20j=%3C%3E%23#x%20%3C%3E%23');
         expect(url.path()).toBe('/a <>#');
         expect(url.search()).toEqual({'i j': '<>#'});
         expect(url.hash()).toBe('x <>#');
@@ -229,7 +232,7 @@ xdescribe('$location', function() {
   describe('HashbangUrl', function() {
 
     beforeEach(function() {
-      url = new LocationHashbangUrl('http://www.server.org:1234/base#!/path?a=b&c#hash', '!');
+      url = new angular.core.LocationHashbangUrl('http://www.server.org:1234/base#!/path?a=b&c#hash', '!');
     });
 
 
@@ -254,7 +257,7 @@ xdescribe('$location', function() {
 
 
     it('should preserve query params in base', function() {
-      url = new LocationHashbangUrl('http://www.server.org:1234/base?base=param#/path?a=b&c#hash', '');
+      url = new angular.core.LocationHashbangUrl('http://www.server.org:1234/base?base=param#/path?a=b&c#hash', '');
       expect(url.absUrl()).toBe('http://www.server.org:1234/base?base=param#/path?a=b&c#hash');
 
       url.path('/new/path');
@@ -265,7 +268,7 @@ xdescribe('$location', function() {
 
 
     it('should prefix path with forward-slash', function() {
-      url = new LocationHashbangUrl('http://host.com/base#path', '');
+      url = new angular.core.LocationHashbangUrl('http://host.com/base#path', '');
       expect(url.path()).toBe('/path');
       expect(url.absUrl()).toBe('http://host.com/base#/path');
 
@@ -276,7 +279,7 @@ xdescribe('$location', function() {
 
 
     it('should set path to forward-slash when empty', function() {
-      url = new LocationHashbangUrl('http://server/base#!', '!');
+      url = new angular.core.LocationHashbangUrl('http://server/base#!', '!');
       url.path('aaa');
 
       expect(url.path()).toBe('/aaa');
@@ -325,7 +328,7 @@ xdescribe('$location', function() {
 
 
       it('should decode special characters', function() {
-        url = new LocationHashbangUrl('http://host.com/a#/%20%3C%3E%23?i%20j=%3C%3E%23#x%20%3C%3E%23', '');
+        url = new angular.core.LocationHashbangUrl('http://host.com/a#/%20%3C%3E%23?i%20j=%3C%3E%23#x%20%3C%3E%23', '');
         expect(url.path()).toBe('/ <>#');
         expect(url.search()).toEqual({'i j': '<>#'});
         expect(url.hash()).toBe('x <>#');
@@ -333,13 +336,13 @@ xdescribe('$location', function() {
 
 
       it('should return decoded characters for search specified in URL', function() {
-        var locationUrl = new LocationUrl('http://host.com/?q=1%2F2%203');
+        var locationUrl = new angular.core.LocationUrl('http://host.com/?q=1%2F2%203');
         expect(locationUrl.search()).toEqual({'q': '1/2 3'});
       });
 
 
       it('should return decoded characters for search specified with setter', function() {
-        var locationUrl = new LocationUrl('http://host.com/');
+        var locationUrl = new angular.core.LocationUrl('http://host.com/');
         locationUrl.search('q', '1/2 3');
         expect(locationUrl.search()).toEqual({'q': '1/2 3'});
       });

@@ -3,10 +3,27 @@
 goog.require('angular.core.module');
 
 goog.provide('angular.core.$cacheFactory');
+goog.provide('angular.core.$templateCache');
+goog.provide('angular.core.$CacheFactoryProvider');
+goog.provide('angular.core.$TemplateCacheProvider');
 goog.provide('angular.core.BlockTypeCache');
+goog.provide('angular.core.CacheFactoryOptions');
 
-angular.core.module.provider('$cacheFactory', $CacheFactoryProvider);
-angular.core.module.provider('$templateCache', $TemplateCacheProvider);
+angular.core.module.provider('$cacheFactory', angular.core.$CacheFactoryProvider);
+angular.core.module.provider('$templateCache', angular.core.$TemplateCacheProvider);
+
+
+/**
+ * @interface
+ */
+angular.core.CacheFactoryOptions = function() {};
+/**
+ * If defined, turns the cache into an LRU cache.
+ * @type {number}
+ */
+angular.core.CacheFactoryOptions.prototype.capacity;
+
+
 
 /**
  * @ngdoc object
@@ -15,28 +32,25 @@ angular.core.module.provider('$templateCache', $TemplateCacheProvider);
  * @description
  * Factory that constructs cache objects.
  *
- *
- * @param {string} cacheId Name or id of the newly created cache.
- * @param {Object=} options Options object that specifies the cache behavior. Properties:
- *
- *   - `{number=}` `capacity` — turns the cache into LRU cache.
- *
- * @returns {Object} Newly created cache object with the following set of methods:
- *
- * - `{Object}` `info()` — Returns id, size, and options of cache.
- * - `{void}` `put({string} key, {*} value)` — Puts a new key-value pair into the cache.
- * - `{{*}}` `get({string} key)` — Returns cached value for `key` or undefined for cache miss.
- * - `{void}` `remove({string} key)` — Removes a key-value pair from the cache.
- * - `{void}` `removeAll()` — Removes all cached values.
- * - `{void}` `destroy()` — Removes references to this cache from $cacheFactory.
- *
  * @constructor
  */
-function $CacheFactoryProvider() {
-
+angular.core.$CacheFactoryProvider = function() {
   this.$get = function() {
     var caches = {};
 
+    /**
+     * @param {string} cacheId Name or id of the newly created cache.
+     * @param {angular.core.CacheFactoryOptions=} options Options object that specifies the cache behavior.
+     *
+     * @returns {Object} Newly created cache object with the following set of methods:
+     *
+     * - `{Object}` `info()` — Returns id, size, and options of cache.
+     * - `{void}` `put({string} key, {*} value)` — Puts a new key-value pair into the cache.
+     * - `{{*}}` `get({string} key)` — Returns cached value for `key` or undefined for cache miss.
+     * - `{void}` `remove({string} key)` — Removes a key-value pair from the cache.
+     * - `{void}` `removeAll()` — Removes all cached values.
+     * - `{void}` `destroy()` — Removes references to this cache from $cacheFactory
+     */
     function cacheFactory(cacheId, options) {
       if (cacheId in caches) {
         throw Error('cacheId ' + cacheId + ' taken');
@@ -165,7 +179,7 @@ function $CacheFactoryProvider() {
 
     return cacheFactory;
   };
-}
+};
 
 /**
  * @ngdoc object
@@ -178,9 +192,9 @@ function $CacheFactoryProvider() {
  *
  * @constructor
  */
-function $TemplateCacheProvider() {
+angular.core.$TemplateCacheProvider = function() {
   this.$get = ['$cacheFactory', function($cacheFactory) {
     return $cacheFactory('blockTypes');
   }];
-}
+};
 

@@ -3,10 +3,12 @@
 goog.require('angular.core.module');
 goog.require('angular.core.$window');
 goog.require('angular.core.$browser');
+goog.require('angular.core.URL_MATCH');
 
 goog.provide('angular.core.$httpBackend');
+goog.provide('angular.core.$HttpBackendProvider');
 
-angular.core.module.provider('$httpBackend', $HttpBackendProvider);
+angular.core.module.provider('$httpBackend', angular.core.$HttpBackendProvider);
 
 
 var XHR = window.XMLHttpRequest || function() {
@@ -33,14 +35,15 @@ var XHR = window.XMLHttpRequest || function() {
  *
  * During testing this implementation is swapped with {@link ngMock.$httpBackend mock
  * $httpBackend} which can be trained with responses.
+ *
  * @constructor
  */
-function $HttpBackendProvider() {
+angular.core.$HttpBackendProvider = function() {
   this.$get = ['$browser', '$window', '$document', function($browser, $window, $document) {
     return createHttpBackend($browser, XHR, $browser.defer, $window.angular.callbacks,
         $document[0], $window.location.protocol.replace(':', ''));
   }];
-}
+};
 
 function createHttpBackend($browser, XHR, $browserDefer, callbacks, rawDocument, locationProtocol) {
   // TODO(vojta): fix the signature
@@ -109,7 +112,7 @@ function createHttpBackend($browser, XHR, $browserDefer, callbacks, rawDocument,
      */
     function completeRequest(callback, status, response, headersString) {
       // URL_MATCH is defined in src/service/location.js
-      var protocol = (url.match(URL_MATCH) || ['', locationProtocol])[1];
+      var protocol = (url.match(angular.core.URL_MATCH) || ['', locationProtocol])[1];
 
       // fix status code for file protocol (it's always 0)
       status = (protocol == 'file') ? (response ? 200 : 404) : status;

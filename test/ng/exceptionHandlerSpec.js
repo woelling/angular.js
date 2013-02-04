@@ -1,9 +1,11 @@
 'use strict';
 
+goog.require('angular.core.$ExceptionHandlerProvider');
+
 describe('$exceptionHandler', function() {
     it('should log errors with single argument', function() {
       module(function($provide){
-        $provide.provider('$exceptionHandler', $ExceptionHandlerProvider);
+        $provide.provider('$exceptionHandler', angular.core.$ExceptionHandlerProvider);
       });
       inject(function($log, $exceptionHandler) {
         $exceptionHandler('myError');
@@ -14,7 +16,7 @@ describe('$exceptionHandler', function() {
 
     it('should log errors with multiple arguments', function() {
       module(function($provide){
-        $provide.provider('$exceptionHandler', $ExceptionHandlerProvider);
+        $provide.provider('$exceptionHandler', angular.core.$ExceptionHandlerProvider);
       });
       inject(function($log, $exceptionHandler) {
         $exceptionHandler('myError', 'comment');

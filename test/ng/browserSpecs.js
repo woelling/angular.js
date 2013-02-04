@@ -1,5 +1,7 @@
 'use strict';
 
+goog.require('angular.core.Browser');
+
 function MockWindow() {
   var events = {};
   var timeouts = this.timeouts = [];
@@ -90,7 +92,7 @@ describe('browser', function() {
                    info: function() { logs.info.push(slice.call(arguments)); },
                    error: function() { logs.error.push(slice.call(arguments)); }};
 
-    browser = new Browser(fakeWindow, fakeDocument, fakeLog, sniffer);
+    browser = new angular.core.Browser(fakeWindow, fakeDocument, fakeLog, sniffer);
   });
 
   it('should contain cookie cruncher', function() {

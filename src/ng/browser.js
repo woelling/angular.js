@@ -3,8 +3,10 @@
 goog.require('angular.core.module');
 
 goog.provide('angular.core.$browser');
+goog.provide('angular.core.$BrowserProvider');
+goog.provide('angular.core.Browser');
 
-angular.core.module.provider('$browser', $BrowserProvider);
+angular.core.module.provider('$browser', angular.core.$BrowserProvider);
 
 /**
  * ! This is a private undocumented service !
@@ -28,7 +30,7 @@ angular.core.module.provider('$browser', $BrowserProvider);
  * @param {Object} $sniffer $sniffer service
  * @constructor
  */
-function Browser(window, document, $log, $sniffer) {
+angular.core.Browser = function(window, document, $log, $sniffer) {
   var self = this,
       rawDocument = document[0],
       location = window.location,
@@ -208,7 +210,7 @@ function Browser(window, document, $log, $sniffer) {
    * NOTE: this api is intended for use only by the $location service. Please use the
    * {@link ng.$location $location service} to monitor url changes in angular apps.
    *
-   * @param {function(string)} listener Listener function to be called when url changes.
+   * @param {function(string)} callback Listener function to be called when url changes.
    * @return {function(string)} Returns the registered listener fn - handy if the fn is anonymous.
    */
   self.onUrlChange = function(callback) {
@@ -359,9 +361,9 @@ function Browser(window, document, $log, $sniffer) {
 /**
  * @constructor
  */
-function $BrowserProvider(){
+angular.core.$BrowserProvider = function() {
   this.$get = ['$window', '$log', '$sniffer', '$document',
       function( $window,   $log,   $sniffer,   $document){
-        return new Browser($window, $document, $log, $sniffer);
+        return new angular.core.Browser($window, $document, $log, $sniffer);
       }];
 }

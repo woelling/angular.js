@@ -3,8 +3,9 @@
 goog.require('angular.core.module');
 
 goog.provide('angular.core.$q');
+goog.provide('angular.core.$QProvider')
 
-angular.core.module.provider('$q', $QProvider);
+angular.core.module.provider('$q', angular.core.$QProvider);
 
 /**
  * @ngdoc service
@@ -132,7 +133,7 @@ angular.core.module.provider('$q', $QProvider);
  *
  * @constructor
  */
-function $QProvider() {
+angular.core.$QProvider = function() {
 
   this.$get = ['$rootScope', '$exceptionHandler', function($rootScope, $exceptionHandler) {
     return qFactory(function(callback) {

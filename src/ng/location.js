@@ -3,12 +3,22 @@
 goog.require('angular.core.module');
 
 goog.provide('angular.core.$location');
+goog.provide('angular.core.$LocationProvider');
+goog.provide('angular.core.LocationUrl');
+goog.provide('angular.core.LocationHashbangUrl');
+goog.provide('angular.core.LocationHashbangInHtml5Url');
+goog.provide('angular.core.URL_MATCH');
 
-angular.core.module.provider('$location', $LocationProvider);
+angular.core.module.provider('$location', angular.core.$LocationProvider);
 
 
-var URL_MATCH = /^([^:]+):\/\/(\w+:{0,1}\w*@)?([\w\.-]*)(:([0-9]+))?(\/[^\?#]*)?(\?([^#]*))?(#(.*))?$/,
-    PATH_MATCH = /^([^\?#]*)?(\?([^#]*))?(#(.*))?$/,
+/**
+ * @const
+ * @type {RegExp}
+ */
+angular.core.URL_MATCH = /^([^:]+):\/\/(\w+:{0,1}\w*@)?([\w\.-]*)(:([0-9]+))?(\/[^\?#]*)?(\?([^#]*))?(#(.*))?$/;
+
+var PATH_MATCH = /^([^\?#]*)?(\?([^#]*))?(#(.*))?$/,
     HASH_MATCH = PATH_MATCH,
     DEFAULT_PORTS = {'http': 80, 'https': 443, 'ftp': 21};
 
@@ -41,7 +51,7 @@ function stripHash(url) {
  * @return {*}
  */
 function matchUrl(url, obj) {
-  var match = URL_MATCH.exec(url);
+  var match = angular.core.URL_MATCH.exec(url);
 
   match = {
       protocol: match[1],
@@ -118,7 +128,7 @@ function convertToHashbangUrl(url, basePath, hashPrefix) {
  * @param {string} url HTML5 url
  * @param {string} pathPrefix
  */
-function LocationUrl(url, pathPrefix, appBaseUrl) {
+angular.core.LocationUrl = function(url, pathPrefix, appBaseUrl) {
   pathPrefix = pathPrefix || '';
 
   /**
@@ -162,7 +172,7 @@ function LocationUrl(url, pathPrefix, appBaseUrl) {
 
 
   this.$$parse(url);
-}
+};
 
 
 /**
@@ -174,7 +184,7 @@ function LocationUrl(url, pathPrefix, appBaseUrl) {
  * @param {string=} hashPrefix Prefix for hash part (containing path and search)
  * @param {string=} appBaseUrl application base URL
  */
-function LocationHashbangUrl(url, hashPrefix, appBaseUrl) {
+angular.core.LocationHashbangUrl = function(url, hashPrefix, appBaseUrl) {
   var basePath;
 
   /**
@@ -221,14 +231,14 @@ function LocationHashbangUrl(url, hashPrefix, appBaseUrl) {
     if(absoluteLinkUrl.indexOf(appBaseUrl) == 0) {
       return absoluteLinkUrl;
     }
-  }
+  };
 
 
   this.$$parse(url);
-}
+};
 
 
-LocationUrl.prototype = {
+angular.core.LocationUrl.prototype = {
 
   /**
    * Has any change been replacing ?
@@ -265,7 +275,7 @@ LocationUrl.prototype = {
    *
    * @param {string=} url New url without base prefix (e.g. `/path?a=b#hash`)
    * @param {boolean=} replace Replace URL history if truthy.
-   * @return {string|LocationUrl} url
+   * @return {string|angular.core.LocationUrl} url
    */
   url: function(url, replace) {
     if (isUndefined(url))
@@ -359,7 +369,7 @@ LocationUrl.prototype = {
    * @param {string=} paramValue If `search` is a string, then `paramValue` will override only a
    *    single search parameter. If the value is `null`, the parameter will be deleted.
    *
-   * @return {string|LocationUrl} search
+   * @return {string|angular.core.LocationUrl} search
    */
   search: function(search, paramValue) {
     if (isUndefined(search))
@@ -412,14 +422,14 @@ LocationUrl.prototype = {
   }
 };
 
-LocationHashbangUrl.prototype = inherit(LocationUrl.prototype);
+angular.core.LocationHashbangUrl.prototype = inherit(angular.core.LocationUrl.prototype);
 
 /**
  * @constructor
- * @extends {LocationHashbangUrl}
+ * @extends {angular.core.LocationHashbangUrl}
  */
-function LocationHashbangInHtml5Url(url, hashPrefix, appBaseUrl, baseExtra) {
-  LocationHashbangUrl.apply(this, arguments);
+angular.core.LocationHashbangInHtml5Url = function(url, hashPrefix, appBaseUrl, baseExtra) {
+  angular.core.LocationHashbangUrl.apply(this, arguments);
 
 
   this.$$rewriteAppUrl = function(absoluteLinkUrl) {
@@ -427,9 +437,9 @@ function LocationHashbangInHtml5Url(url, hashPrefix, appBaseUrl, baseExtra) {
       return appBaseUrl + baseExtra + '#' + hashPrefix  + absoluteLinkUrl.substr(appBaseUrl.length);
     }
   }
-}
+};
 
-LocationHashbangInHtml5Url.prototype = inherit(LocationHashbangUrl.prototype);
+angular.core.LocationHashbangInHtml5Url.prototype = inherit(angular.core.LocationHashbangUrl.prototype);
 
 function locationGetter(property) {
   return function() {
@@ -487,7 +497,7 @@ function locationGetterSetter(property, preprocess) {
  * Use the `$locationProvider` to configure how the application deep linking paths are stored.
  * @constructor
  */
-function $LocationProvider(){
+angular.core.$LocationProvider = function() {
   var hashPrefix = '',
       html5Mode = false;
 
@@ -542,11 +552,11 @@ function $LocationProvider(){
           pathPrefix + '/';
 
       if ($sniffer.history) {
-        $location = new LocationUrl(
+        $location = new angular.core.LocationUrl(
           convertToHtml5Url(initUrl, basePath, hashPrefix),
           pathPrefix, appBaseUrl);
       } else {
-        $location = new LocationHashbangInHtml5Url(
+        $location = new angular.core.LocationHashbangInHtml5Url(
           convertToHashbangUrl(initUrl, basePath, hashPrefix),
           hashPrefix, appBaseUrl, basePath.substr(pathPrefix.length + 1));
       }
@@ -557,7 +567,7 @@ function $LocationProvider(){
           (initUrlParts.search ? ('?' + initUrlParts.search) : '') +
           '#' + hashPrefix + '/';
 
-      $location = new LocationHashbangUrl(initUrl, hashPrefix, appBaseUrl);
+      $location = new angular.core.LocationHashbangUrl(initUrl, hashPrefix, appBaseUrl);
     }
 
     $rootElement.bind('click', function(event) {
@@ -634,4 +644,4 @@ function $LocationProvider(){
       $rootScope.$broadcast('$locationChangeSuccess', $location.absUrl(), oldUrl);
     }
 }];
-}
+};

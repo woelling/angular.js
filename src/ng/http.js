@@ -8,8 +8,10 @@ goog.require('angular.core.$rootScope');
 goog.require('angular.core.$q');
 
 goog.provide('angular.core.$http');
+goog.provide('angular.core.$HttpProvider');
 
-angular.core.module.provider('$http', $HttpProvider);
+angular.core.module.provider('$http', angular.core.$HttpProvider);
+
 /**
  * Parse headers into key value object
  *
@@ -103,7 +105,7 @@ function isSuccess(status) {
 /**
  * @constructor
  */
-function $HttpProvider() {
+angular.core.$HttpProvider = function() {
   var JSON_START = /^\s*(\[|\{[^\{])/,
       JSON_END = /[\}\]]\s*$/,
       PROTECTION_PREFIX = /^\)\]\}',?\n/;
@@ -401,8 +403,7 @@ function $HttpProvider() {
      *    - **withCredentials** - `{boolean}` - whether to to set the `withCredentials` flag on the
      *      XHR object. See {@link https://developer.mozilla.org/en/http_access_control#section_5
      *      requests with credentials} for more information.
-     *    - **responseType** - `{string}` - see {@link
-     *      https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest#responseType requestType}.
+     *    - **responseType** - `{string}` - see {@link https://developer.mozilla.org/en-US/docs/DOM/XMLHttpRequest#responseType requestType}.
      *
      * @returns {angular.core.HttpPromise} Returns a {@link ng.$q promise} object with the
      *   standard `then` method and two http specific methods: `success` and `error`. The `then`
@@ -798,4 +799,4 @@ function $HttpProvider() {
 
 
   }];
-}
+};

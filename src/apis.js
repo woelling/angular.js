@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('angular.apis');
 goog.provide('angular.HashQueueMap');
 goog.provide('angular.HashMap');
 
@@ -39,12 +38,12 @@ function hashKey(obj) {
  * @param {(Object|Array)=} array
  * @constructor
  */
-function HashMap(array){
+angular.HashMap = function(array) {
   if (array) {
     forEach(array, this.put, this);
   }
 }
-HashMap.prototype = {
+angular.HashMap.prototype = {
   /**
    * Store key value pair
    * @param key key to store can be any type
@@ -77,8 +76,8 @@ HashMap.prototype = {
  * A map where multiple values can be added to the same key such that they form a queue.
  * @constructor
  */
-function HashQueueMap() {}
-HashQueueMap.prototype = {
+angular.HashQueueMap = function() {};
+angular.HashQueueMap.prototype = {
   /**
    * Same as array push, but using an array as the value for the hash
    */
@@ -116,8 +115,3 @@ HashQueueMap.prototype = {
     }
   }
 };
-
-
-angular.HashQueueMap = HashQueueMap;
-angular.HashMap = HashMap;
-

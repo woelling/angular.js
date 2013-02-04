@@ -3,6 +3,8 @@
 goog.require('angular');
 goog.require('angular.module');
 
+goog.require('angular.core.Anchor');
+
 goog.provide('angular.core.module');
 
 angular.core.module = angular.module('core', []).
@@ -15,8 +17,10 @@ angular.core.module = angular.module('core', []).
     }]).
     factory('$directiveInjector', ['$injector', function($injector) {
       return $injector.limit('directive:');
-    }], true);
+    }], true).
+    curry('$Anchor', angular.core.Anchor);
 
 
 //TODO(misko): clean up
 angular.module('ng');
+

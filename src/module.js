@@ -154,6 +154,19 @@ angular.module = function(name, dependencies, config) {
   return module;
 };
 
+/**
+ * @param {string} name
+ * @param {angular.Injectable} Type
+ * @param {boolean=} isPrivate
+ */
+angular.Module.prototype.curry = function(name, Type, isPrivate) {
+  this.factory(name, function($rootScope, $injector) {
+    return $injector.curry(Type);
+  }, isPrivate);
+  return this;
+};
+
+
 angular.Module.modules = {};
 
 // TODO(misko): temporary hack
@@ -162,3 +175,4 @@ angular.Module.prototype.directive = function(name, Directive) {
   this.value('directive:' + name, Directive);
 };
 angular.Module.prototype.filter = noop;
+

@@ -2,6 +2,7 @@
 
 goog.provide('angular.core.Selector');
 goog.provide('angular.core.Select');
+goog.require('angular.core.Directive')
 
 /**
  * @typedef { function(Node):Array.<angular.core.DirectiveInfo> }

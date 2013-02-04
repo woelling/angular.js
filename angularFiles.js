@@ -15,6 +15,7 @@ angularFiles = {
     'src/core/Anchor.js',
     'src/core/Directive.js',
     'src/core/Scope.js',
+    'src/core/annotate.js',
     'src/ng/window.js',
     'src/ng/log.js',
     'src/ng/exceptionHandler.js',

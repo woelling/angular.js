@@ -598,6 +598,37 @@ describe('injector', function() {
         }).toThrow('Circular dependency: b <- a');
       });
     });
+
+    describe('curry', function() {
+      it('should curry function', function() {
+        var injector = createInjector([function($provide) {
+          $provide.value('a', 'A');
+        }]);
+
+        var instance, a, b;
+
+        function fn(_a, _b) {
+          instance = this;
+          a = _a;
+          b = _b;
+        }
+        fn.$inject = ['a'];
+
+        var curriedFn = injector.curry(fn);
+
+        curriedFn('B');
+        expect(a).toEqual('A');
+        expect(b).toEqual('B');
+
+        instance = a = b = false;
+        var i = new curriedFn('B');
+
+        expect(a).toEqual('A');
+        expect(b).toEqual('B');
+        expect(instance instanceof fn).toBe(true);
+        expect(i).toEqual(instance);
+      });
+    });
   });
 
 
@@ -765,6 +796,7 @@ describe('injector', function() {
     });
   });
 
+
   describe('protection modes', function() {
     it('should prevent provider lookup in app', function() {
       var  $injector = createInjector([function($provide) {
@@ -913,6 +945,7 @@ describe('injector', function() {
       expect(aInjector.enumerate()).toEqual(['a', 'b', 'c']);
     });
   })
+
 
   describe('private instances', function() {
     var baseInjector;

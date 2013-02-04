@@ -392,6 +392,55 @@ function createInjector(modulesToLoad) {
       return isObject(returnedValue) ? returnedValue : instance;
     },
 
+    /**
+     * Create a new function which curries some of the parameters to the original delegate function. The resulting
+     * function can be used as constructor function or just as direct call.
+     *
+     * <pre>
+     * // Give
+     * var MyType = function(a, b) {
+     *   this.a = a;
+     *   this.b = b;
+     * }
+     * MyType.$inject = ['a'];
+     *
+     * // when
+     * expect(injector.get('a')).toEqual('A');
+     *
+     * // then
+     * var MyTypeCurried = injector.curry(MyType);
+     * var myType = new MyTypeCurried('B');
+     *
+     * expect(myType.a).toEqual('A');
+     * expect(myType.b).toEqual('B');
+     * </pre>
+     *
+     * @param {angular.core.Injectable} delegate The function which will have some of its values curried.
+     *   The values which are bound are determined by the standard injection annotation such as $inject.
+     * @return {Function} A new function which has some of the delegate function paramaters bound.
+     */
+    curry: function(delegate) {
+      var injector = this;
+      var delegateFn = isArray(delegate) ? Type[delegate.length - 1] : delegate;
+      var curriedFn = function() {
+        var curriedArguments = curryArgs.concat(slice.call(arguments, 0));
+        var returnValue = delegateFn.apply(this, curriedArguments);
+
+        return returnValue == undefined && this instanceof curriedFn ? this : returnValue;
+      };
+      var curryArgs = [],
+          $inject = annotate(delegate),
+          i, ii;
+
+      for(i = 0, ii = $inject.length; i < ii; i++) {
+        curryArgs.push(this.get($inject[i]));
+      }
+
+      curriedFn.prototype = (isArray(delegate) ? Type[delegate.length - 1] : delegate).prototype;
+
+      return curriedFn;
+    },
+
 
     /**
      * @ngdoc method

@@ -2,34 +2,10 @@
 
 COMPILE="java -jar lib/closure-compiler/compiler.jar"
 
-FILES="src/Angular.js \
-       src/apis.js \
-       src/module.js \
-       src/auto/injector.js \
-       src/core/_module.js \
-       src/ng/rootScope.js \
-       src/ng/exceptionHandler.js \
-       src/ng/log.js \
-       src/ng/window.js \
-       src/ng/parse.js \
-       src/ng/interpolate.js \
-       src/core/Anchor.js \
-       src/core/Block.js \
-       src/core/Directive.js \
-       src/core/Scope.js \
-       src/core/directive/inline.js \
-       src/core/directive/directives.js \
-       src/core/service/anchor.js \
-       src/core/service/block.js \
-       src/core/service/selector.js \
-       src/core/service/compile.js \
-       src/core/service/template.js \
-       src/export.js \
-       "
+FILES=`./lib/closure-compiler/closurebuilder.py --root=src/ --root=lib/closure-compiler/ --namespace=angular_export`
 
 FLAGS="--output_wrapper (function(){%output%})() \
        --summary_detail_level 3 \
-       --manage_closure_dependencies \
        --externs src/externs.js \
        --language_in ECMASCRIPT5_STRICT \
        --jscomp_off nonStandardJsDocs \
@@ -67,5 +43,5 @@ cat src/angular.prefix $FILES src/angular.suffix > build/c-angular.js
 $COMPILE --js_output_file build/c-angular.min.js \
          --formatting PRETTY_PRINT \
          --compilation_level $OPTIMIZATION \
-         $FLAGS --js lib/closure-compiler/base.js $FILES \
+         $FLAGS --js $FILES \
 

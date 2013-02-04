@@ -1,4 +1,7 @@
+goog.provide('angular_export');
+
 goog.require('angular');
+goog.require('angular.annotate');
 goog.require('angular.core.$Anchor');
 goog.require('angular.core.$Block');
 goog.require('angular.core.$compile');

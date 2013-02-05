@@ -10,7 +10,6 @@ goog.require('angular.core.$q');
 goog.provide('angular.core.$http');
 goog.provide('angular.core.$HttpProvider');
 
-angular.core.module.provider('$http', angular.core.$HttpProvider);
 
 /**
  * Parse headers into key value object
@@ -800,3 +799,5 @@ angular.core.$HttpProvider = function() {
 
   }];
 };
+
+angular.core.module.provider('$http', angular.core.$HttpProvider);

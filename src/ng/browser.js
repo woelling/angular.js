@@ -6,7 +6,6 @@ goog.provide('angular.core.$browser');
 goog.provide('angular.core.$BrowserProvider');
 goog.provide('angular.core.Browser');
 
-angular.core.module.provider('$browser', angular.core.$BrowserProvider);
 
 /**
  * ! This is a private undocumented service !
@@ -366,4 +365,6 @@ angular.core.$BrowserProvider = function() {
       function( $window,   $log,   $sniffer,   $document){
         return new angular.core.Browser($window, $document, $log, $sniffer);
       }];
-}
+};
+
+angular.core.module.provider('$browser', angular.core.$BrowserProvider);

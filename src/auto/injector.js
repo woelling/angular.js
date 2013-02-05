@@ -969,6 +969,9 @@ function createInjector(modulesToLoad) {
         var Provider = /** @type function(new:Provider) */ (provider_);
         instance = providerInjector.instantiate(Provider);
       }
+      if (!instance) {
+        throw Error('Provider ' + name + ' must be defined.');
+      }
       if (!instance.$get) {
         throw Error('Provider ' + name + ' must define $get factory method.');
       }

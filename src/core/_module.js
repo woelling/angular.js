@@ -36,9 +36,9 @@ angular.core.module = angular.module('core', []).
       }],
       '$timeout': angular.core.$timeoutFactory
     }).
-    provider('$rootScope', $RootScopeProvider).
-    provider('$parse', $ParseProvider).
-    provider('$interpolate', $InterpolateProvider).
+    provider('$rootScope', angular.core.$RootScopeProvider).
+    provider('$parse', angular.core.$ParseProvider).
+    provider('$interpolate', angular.core.$InterpolateProvider).
     curryTypeFactory('$blockListFactory', angular.core.BlockList).
     curryTypeFactory('$blockFactory', angular.core.Block).
     curry('$blockTypeFactory', angular.core.BlockType.factory).

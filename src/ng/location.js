@@ -9,7 +9,6 @@ goog.provide('angular.core.LocationHashbangUrl');
 goog.provide('angular.core.LocationHashbangInHtml5Url');
 goog.provide('angular.core.URL_MATCH');
 
-angular.core.module.provider('$location', angular.core.$LocationProvider);
 
 
 /**
@@ -645,3 +644,5 @@ angular.core.$LocationProvider = function() {
     }
 }];
 };
+
+angular.core.module.provider('$location', angular.core.$LocationProvider);

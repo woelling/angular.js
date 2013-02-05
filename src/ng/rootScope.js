@@ -6,7 +6,6 @@ goog.require('angular.core.ExceptionHandler');
 goog.require('angular.core.$parse');
 goog.require('angular.core.Scope');
 
-goog.provide('angular.core.$rootScope');
 goog.provide('angular.core.$RootScopeProvider');
 
 /**
@@ -795,11 +794,3 @@ angular.core.$RootScopeProvider = function() {
       function initWatchVal() {}
     }];
 };
-
-    /**
-     * function used as an initial value for watchers.
-     * because it's uniqueue we can easily tell it apart from other values
-     */
-    function initWatchVal() {}
-  }];
-}

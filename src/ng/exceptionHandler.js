@@ -6,8 +6,6 @@ goog.provide('angular.core.$exceptionHandler');
 goog.provide('angular.core.$ExceptionHandlerProvider');
 goog.provide('angular.core.ExceptionHandler');
 
-angular.core.module.provider('$exceptionHandler',
-    angular.core.$ExceptionHandlerProvider);
 
 /**
  * @ngdoc function

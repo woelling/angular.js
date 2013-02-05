@@ -335,7 +335,6 @@ describe('injector', function() {
       expect($injector.get('c')).toEqual('ABC');
     });
 
-
     it('should run symbolic modules', function() {
       angular.module('myModule', []).value('a', 'abc');
       var $injector = createInjector(['myModule']);
@@ -485,6 +484,30 @@ describe('injector', function() {
           expect(createInjector([function($provide) {
             $provide.provider({value: valueFn({$get:Array})});
           }]).get('value')).toEqual([]);
+        });
+
+
+        it('should give a useful error on missing provider', function() {
+          var provide;
+          createInjector([function($provide) {
+            provide = $provide;
+          }]);
+
+          expect(function() {
+            provide.provider('something', undefined);
+          }).toThrow('Provider something must be defined.');
+        });
+
+
+        it('should give a useful error on invalid provider', function() {
+          var provide;
+          createInjector([function($provide) {
+            provide = $provide;
+          }]);
+
+          expect(function() {
+            provide.provider('something', {});
+          }).toThrow('Provider something must define $get factory method.');
         });
       });
 

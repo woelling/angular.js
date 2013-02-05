@@ -8,7 +8,6 @@ goog.require('angular.core.URL_MATCH');
 goog.provide('angular.core.$httpBackend');
 goog.provide('angular.core.$HttpBackendProvider');
 
-angular.core.module.provider('$httpBackend', angular.core.$HttpBackendProvider);
 
 
 var XHR = window.XMLHttpRequest || function() {
@@ -149,3 +148,5 @@ function createHttpBackend($browser, XHR, $browserDefer, callbacks, rawDocument,
     rawDocument.body.appendChild(script);
   }
 }
+
+angular.core.module.provider('$httpBackend', angular.core.$HttpBackendProvider);

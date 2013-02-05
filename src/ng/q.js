@@ -5,7 +5,6 @@ goog.require('angular.core.module');
 goog.provide('angular.core.$q');
 goog.provide('angular.core.$QProvider')
 
-angular.core.module.provider('$q', angular.core.$QProvider);
 
 /**
  * @ngdoc service
@@ -398,3 +397,5 @@ function qFactory(nextTick, exceptionHandler) {
     all: all
   };
 }
+
+angular.core.module.provider('$q', angular.core.$QProvider);

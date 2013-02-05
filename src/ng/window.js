@@ -1,12 +1,11 @@
 'use strict';
 
-goog.require('angular.core.module');
-
 goog.provide('angular.core.$window');
+
 /**
  * @ngdoc object
  * @name ng.$window
- * @constructor
+ *
  *
  * @description
  * A reference to the browser's `window` object. While `window`
@@ -26,5 +25,11 @@ goog.provide('angular.core.$window');
      <doc:scenario>
      </doc:scenario>
    </doc:example>
+ *
+ * @typedef {Window}
  */
-angular.core.module.value('$window', window);
+angular.core.$window;
+
+angular.core.$windowFactory = function() {
+  return window;
+};

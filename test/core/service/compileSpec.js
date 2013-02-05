@@ -11,7 +11,7 @@ describe('dte.compiler', function() {
   }));
 
   it('should compile basic hello world', inject(function() {
-    var element = angular.element('<div bind="name"></div>');
+    var element = $('<div bind="name"></div>');
     var template = $compile(element);
 
     $rootScope.name = 'angular';
@@ -24,7 +24,7 @@ describe('dte.compiler', function() {
 
 
   it('should compile repeater', inject(function() {
-    var element = angular.element('<div><div repeat="item in items" bind="item"></div></div>');
+    var element = $('<div><div repeat="item in items" bind="item"></div></div>');
     var template = $compile(element);
 
     $rootScope.items = ['A', 'b'];
@@ -41,7 +41,7 @@ describe('dte.compiler', function() {
 
 
   it('should compile multi-root repeater', inject(function() {
-    var element = angular.element(
+    var element = $(
         '<div>' +
           '<!--[repeat=item in items]-->' +
             '<div bind="item"></div>' +
@@ -64,7 +64,7 @@ describe('dte.compiler', function() {
 
 
   it('should compile text', inject(function() {
-    var element = angular.element('<div>{{name}}<span>!</span></div>').contents();
+    var element = $('<div>{{name}}<span>!</span></div>').contents();
     element.remove();
 
     var template = $compile(element);
@@ -72,7 +72,7 @@ describe('dte.compiler', function() {
     $rootScope.name = 'OK';
     var block = template();
 
-    element = angular.element(block.elements);
+    element = $(block.elements);
 
     block.attach($rootScope);
 
@@ -90,7 +90,7 @@ describe('dte.compiler', function() {
 
 
   it('should compile nested repeater', inject(function() {
-    var element = angular.element(
+    var element = $(
         '<div>' +
           '<ul repeat="lis in uls">' +
              '<li repeat="li in lis" bind="li"></li>' +
@@ -135,7 +135,7 @@ describe('dte.compiler', function() {
     }));
 
     it('should transclude multiple templates', inject(function($rootScope) {
-      var element = angular.element(
+      var element = $(
           '<div switch="name">' +
               '<span switch-when="a">when</span>' +
               '<span switch-default>default</span>' +
@@ -186,7 +186,7 @@ describe('dte.compiler', function() {
       $provide.value({ 'directive:[one]': One, 'directive:[two]': Two });
     });
     inject(function($compile) {
-      var element = angular.element(
+      var element = $(
           '<div><span two one>{{test}}</span></div>');
       var block = $compile(element)(element);
 
@@ -208,7 +208,7 @@ describe('dte.compiler', function() {
 
   describe("interpolation", function() {
     it('should interpolate attribute nodes', inject(function() {
-      var element = angular.element('<div test="{{name}}"></div>');
+      var element = $('<div test="{{name}}"></div>');
       var template = $compile(element);
 
       $rootScope.name = 'angular';
@@ -220,7 +220,7 @@ describe('dte.compiler', function() {
 
 
     it('should interpolate text nodes', inject(function() {
-      var element = angular.element('<div>{{name}}</div>');
+      var element = $('<div>{{name}}</div>');
       var template = $compile(element);
 
       $rootScope.name = 'angular';
@@ -247,7 +247,7 @@ describe('dte.compiler', function() {
 
 
     it('should generate directive from a directive', inject(function() {
-      var element = angular.element('<ul><li generate="abc"></li></ul>');
+      var element = $('<ul><li generate="abc"></li></ul>');
       var template = $compile(element);
       var block = template(element);
 

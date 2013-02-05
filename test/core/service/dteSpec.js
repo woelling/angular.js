@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('core.test', ['core']).config(function($provide) {
-  $provide.value('$rootElement', angular.element('<div ng-app></div>'));
+  $provide.value('$rootElement', $('<div ng-app></div>'));
 });
 
 describe('core.test', function() {
@@ -9,7 +9,6 @@ describe('core.test', function() {
 
   beforeEach(module('core.test'));
 
-  var $ = angular.element;
   var $rootScope, $rootElement, $template;
 
   beforeEach(inject(function(_$template_, _$rootElement_, _$rootScope_) {

@@ -1,11 +1,8 @@
 'use strict';
 
-goog.require('angular.core.module');
 goog.require('angular.core.$log');
 
 goog.provide('angular.core.$exceptionHandler');
-
-angular.core.module.provider('$exceptionHandler', $ExceptionHandlerProvider);
 
 /**
  * @ngdoc function
@@ -36,3 +33,8 @@ function $ExceptionHandlerProvider() {
     };
   }];
 }
+
+/**
+ * @typedef {function((Error|string), string=)}
+ */
+angular.core.$exceptionHandler;

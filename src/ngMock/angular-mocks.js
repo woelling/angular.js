@@ -581,10 +581,10 @@ angular.mock.dump = function(object) {
     var out;
 
     if (angular.isElement(object)) {
-      object = angular.element(object);
-      out = angular.element('<div></div>');
+      object = $(object);
+      out = $('<div></div>');
       angular.forEach(object, function(element) {
-        out.append(angular.element(element).clone());
+        out.append($(element).clone());
       });
       out = out.html();
     } else if (angular.isArray(object)) {
@@ -1346,7 +1346,7 @@ function MockXhr() {
  */
 angular.mock.$RootElementProvider = function() {
   this.$get = function() {
-    return angular.element('<div ng-app></div>');
+    return $('<div ng-app></div>');
   }
 };
 
@@ -1358,7 +1358,7 @@ angular.mock.$RootElementProvider = function() {
  * The `ngMock` is an angular module which is used with `ng` module and adds unit-test configuration as well as useful
  * mocks to the {@link AUTO.$injector $injector}.
  */
-angular.module('ngMock', ['ng', 'core']).provider({
+angular.module('ngMock', ['core']).provider({
   $browser: angular.mock.$BrowserProvider,
   $exceptionHandler: angular.mock.$ExceptionHandlerProvider,
   $log: angular.mock.$LogProvider,
@@ -1557,13 +1557,13 @@ angular.mock.e2e.$httpBackendDecorator = ['$delegate', '$browser', createHttpBac
 
 angular.mock.clearDataCache = function() {
   var key,
-      cache = angular.element && angular.element.cache || {};
+      cache = $ && $.cache || {};
 
   for(key in cache) {
     if (cache.hasOwnProperty(key)) {
       var handle = cache[key].handle;
 
-      handle && angular.element(handle.elem).unbind();
+      handle && $(handle.elem).unbind();
       delete cache[key];
     }
   }
@@ -1612,8 +1612,8 @@ window.jstestdriver && (function(window) {
     angular.mock.clearDataCache();
 
     // clean up jquery's fragment cache
-    angular.element && angular.forEach(angular.element.fragments, function(val, key) {
-      delete angular.element.fragments[key];
+    $ && angular.forEach($.fragments, function(val, key) {
+      delete $.fragments[key];
     });
 
     MockXhr.$$lastInstance = null;
@@ -1725,7 +1725,6 @@ window.jstestdriver && (function(window) {
       var modules = currentSpec.$modules || [];
 
       modules.unshift('ngMock');
-      modules.unshift('ng');
       var injector = currentSpec.$injector;
       if (!injector) {
         injector = currentSpec.$injector = angular.injector(modules);

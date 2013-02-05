@@ -1,73 +1,70 @@
 'use strict';
 
-goog.require('angular.core.module');
-goog.require('angular.core.$rootScope');
-goog.require('angular.core.$exceptionHandler');
-goog.require('angular.core.$Block');
-
 goog.provide('angular.core.$template');
+goog.provide('angular.core.$templateFactory');
+goog.provide('angular.core.$template.select');
 
-angular.core.module.factory('$template', ['$rootElement', '$injector', '$exceptionHandler', '$Block',
-  function($rootElements,   $injector,   $exceptionHandler, Block) {
-    return function template(templateSelector, directiveDefs) {
-      if (!directiveDefs) directiveDefs = EMPTY_ARRAY;
+angular.core.$templateFactory =   function($rootElement,   $injector,   $exceptionHandler, $Block) {
+  return function template(templateSelector, directiveDefs) {
+    if (!directiveDefs) directiveDefs = EMPTY_ARRAY;
 
-      var templateElements = extractTemplate(templateSelector, directiveDefs);
-      ASSERT(templateElements && templateElements.length != undefined);
+    var templateElements = extractTemplate(templateSelector, directiveDefs);
+    ASSERT(templateElements && templateElements.length != undefined);
 
-      return function block(blockSelectorHtmlOrElements, collectionsBlocks) {
-        var blockElements = blockSelectorHtmlOrElements
-            ? (typeof blockSelectorHtmlOrElements == 'string'
-            ? angular.core.$template.select($rootElements, blockSelectorHtmlOrElements)
-            : blockSelectorHtmlOrElements)
-            : clone(templateElements);
+    return function block(blockSelectorHtmlOrElements, collectionsBlocks) {
+      var blockElements = blockSelectorHtmlOrElements
+          ? (typeof blockSelectorHtmlOrElements == 'string'
+          ? angular.core.$template.select($rootElement, blockSelectorHtmlOrElements)
+          : blockSelectorHtmlOrElements)
+          : clone(templateElements);
 
-        return new Block(blockElements, directiveDefs, collectionsBlocks);
-      }
-    };
+      return new $Block(blockElements, directiveDefs, collectionsBlocks);
+    }
+  };
 
 
-    function extractTemplate(selector, directiveDefs) {
-      if (typeof selector == 'string') {
-        var elements = clone(angular.core.$template.select($rootElements, selector));
+  function extractTemplate(selector, directiveDefs) {
+    if (typeof selector == 'string') {
+      var elements = clone(angular.core.$template.select($rootElement, selector));
 
-        // remove the hole contents
-        for(var i = 0, ii = directiveDefs.length; i < ii; i++) {
-          var elementDirectiveDefs = directiveDefs[i];
+      // remove the hole contents
+      for(var i = 0, ii = directiveDefs.length; i < ii; i++) {
+        var elementDirectiveDefs = directiveDefs[i];
 
-          if (elementDirectiveDefs[1].length == 3 /* is component */) {
-            var holeElements = angular.core.$template.select(elements, elementDirectiveDefs[0]),
-                parentNode = holeElements[0].parentNode;
+        if (elementDirectiveDefs[1].length == 3 /* is component */) {
+          var holeElements = angular.core.$template.select(elements, elementDirectiveDefs[0]),
+              parentNode = holeElements[0].parentNode;
 
-            // assume first element is anchor and remove the rest
-            for(var j = 1, jj = holeElements.length; j < jj; j++) {
-              parentNode.removeChild(holeElements[j]);
-            }
-            // strip span from hole selectors
-            elementDirectiveDefs[0] = elementDirectiveDefs[0].replace(/\+\d+$/, '');
+          // assume first element is anchor and remove the rest
+          for(var j = 1, jj = holeElements.length; j < jj; j++) {
+            parentNode.removeChild(holeElements[j]);
           }
+          // strip span from hole selectors
+          elementDirectiveDefs[0] = elementDirectiveDefs[0].replace(/\+\d+$/, '');
         }
-
-        return elements;
-      } else {
-        // assume that it is array of elements
-        return selector;
       }
+
+      return elements;
+    } else {
+      // assume that it is array of elements
+      return selector;
     }
+  }
 
 
-    function clone(elements) {
-      var cloneElements = [],
-          i = 0, ii = elements.length;
+  function clone(elements) {
+    var cloneElements = [],
+        i = 0, ii = elements.length;
 
-      ASSERT(ii);
+    ASSERT(ii);
 
-      for(; i < ii; i++) {
-        cloneElements[i] = elements[i].cloneNode(true);
-      }
-      return cloneElements;
+    for(; i < ii; i++) {
+      cloneElements[i] = elements[i].cloneNode(true);
     }
-  }]);
+    return cloneElements;
+  }
+};
+angular.annotate.$inject(['$rootElement', '$injector', '$exceptionHandler', '$Block'], angular.core.$templateFactory);
 
 
 angular.core.$template.select = function (roots, selector) {

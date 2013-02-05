@@ -1,6 +1,5 @@
 'use strict';
 
-goog.provide('angular.core.Block');
 
 /**
  * @interface

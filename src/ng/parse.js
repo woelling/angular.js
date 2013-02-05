@@ -1,7 +1,5 @@
 'use strict';
 
-goog.require('angular.core.module');
-
 goog.provide('angular.core.$parse');
 
 var OPERATORS = {
@@ -875,7 +873,7 @@ function getterFn(path, csp) {
  *    allows one to set values to expressions.
  *
  */
-angular.core.module.provider('$parse', function $ParseProvider() {
+function $ParseProvider() {
   var cache = {};
   this.$get = ['$filter', '$sniffer', function($filter, $sniffer) {
     return function(exp) {
@@ -891,4 +889,4 @@ angular.core.module.provider('$parse', function $ParseProvider() {
       }
     };
   }];
-});
+};

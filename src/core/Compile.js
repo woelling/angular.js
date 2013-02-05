@@ -1,8 +1,7 @@
 'use strict';
 
 goog.provide('angular.core.Compile');
-
-goog.require('angular.core.Template');
+goog.provide('angular.core.AttrAccessor');
 
 /**
  * @typedef {
@@ -10,3 +9,10 @@ goog.require('angular.core.Template');
  * }
  */
 angular.core.Compile;
+
+/**
+ * @typedef {
+ *   function(string):string
+ * }
+ */
+angular.core.AttrAccessor;

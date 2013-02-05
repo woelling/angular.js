@@ -1,7 +1,5 @@
 'use strict';
 
-goog.require('angular.core.module');
-
 goog.provide('angular.core.Directive');
 goog.provide('angular.core.DirectiveType');
 goog.provide('angular.core.AccessorFactory');

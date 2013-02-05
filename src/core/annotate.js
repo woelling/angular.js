@@ -2,6 +2,8 @@
 
 goog.provide('angular.annotate');
 
+goog.require('angular.injector');
+
 /**
  * @typedef {{
  *   $inject: (Array.<string>|undefined)

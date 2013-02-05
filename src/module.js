@@ -173,6 +173,7 @@ angular.Module.modules = {};
 angular.Module.prototype.controller = noop;
 angular.Module.prototype.directive = function(name, Directive) {
   this.value('directive:' + name, Directive);
+  return this;
 };
 angular.Module.prototype.filter = noop;
 

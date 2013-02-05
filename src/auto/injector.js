@@ -415,13 +415,13 @@ function createInjector(modulesToLoad) {
      * expect(myType.b).toEqual('B');
      * </pre>
      *
-     * @param {angular.core.Injectable} delegate The function which will have some of its values curried.
+     * @param {angular.Injectable} delegate The function which will have some of its values curried.
      *   The values which are bound are determined by the standard injection annotation such as $inject.
      * @return {Function} A new function which has some of the delegate function paramaters bound.
      */
     curry: function(delegate) {
       var injector = this;
-      var delegateFn = isArray(delegate) ? Type[delegate.length - 1] : delegate;
+      var delegateFn = isArray(delegate) ? delegate[delegate.length - 1] : delegate;
       var curriedFn = function() {
         var curriedArguments = curryArgs.concat(slice.call(arguments, 0));
         var returnValue = delegateFn.apply(this, curriedArguments);
@@ -436,7 +436,7 @@ function createInjector(modulesToLoad) {
         curryArgs.push(this.get($inject[i]));
       }
 
-      curriedFn.prototype = (isArray(delegate) ? Type[delegate.length - 1] : delegate).prototype;
+      curriedFn.prototype = (isArray(delegate) ? delegateFn[delegate.length - 1] : delegate).prototype;
 
       return curriedFn;
     },

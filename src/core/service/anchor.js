@@ -1,16 +1,18 @@
 'use strict';
 
-goog.require('angular.core.module');
-goog.require('angular.annotate');
+goog.provide('angular.core.Anchor');
 
-goog.provide('angular.core.$Anchor');
+goog.require('angular.annotate');
+goog.require('angular.core.Block');
+goog.require('angular.core.ElementWrapper');
+goog.require('angular.core.Scope');
 
 
 /**
  * An Anchor is an instance of a hole. Anchors designate where child Blocks can be added in parent Block. Anchors
  * wrap a DOM element, and act as references which allows more blocks to be added.
  *
- *
+ * @param {angular.core.Scope} $rootScope
  * @param {Array.<Node>} elements An array of elements which the Anchor wraps. (Even thought Anchor takes an array of
  *   elements, Anchors always wrap exactly one element.)
  * @param {*} templates
@@ -62,11 +64,5 @@ angular.core.Anchor.prototype.newBlock = function(type) {
   return template;
 };
 
-/**
- * Bound anchor constructor.
- * @Constructor
- * @extends {angular.core.Anchor}
- */
-angular.core.$Anchor = function(elements, templates) {};
 
 

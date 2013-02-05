@@ -3,6 +3,19 @@
 COMPILE="java -jar lib/closure-compiler/compiler.jar"
 
 FILES=`./lib/closure-compiler/closurebuilder.py --root=src/ --root=lib/closure-compiler/ --namespace=angular_export`
+if [ -z "$FILES" ]; then
+  exit 1
+fi
+FLAT_FILES=`echo $FILES`
+
+echo "files = [JASMINE, JASMINE_ADAPTER].
+  concat('$FLAT_FILES'.replace(' src/export.js', '').split(' ')).
+  concat([
+    'lib/jquery/jquery.js',
+    'src/ngMock/angular-mocks.js',
+    'test/core/**/*.js',
+    'test/auto/**/*.js'
+  ]);" > testacular.conf.js
 
 FLAGS="--output_wrapper (function(){%output%})() \
        --summary_detail_level 3 \

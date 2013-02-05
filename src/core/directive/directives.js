@@ -1,203 +1,181 @@
 'use strict';
 
-goog.provide('angular.core.directives');
+goog.provide('angular.core.directive.Bind');
+goog.provide('angular.core.directive.Repeat');
 
-goog.require('angular.core.module');
-goog.require('angular.core.Scope');
-goog.require('angular.core.$Anchor');
-goog.require('angular.core.Directive');
+goog.require('angular.core.AttrAccessor');
 
-angular.core.module.value({
-  'directive:[bind]': ['$text', '$value',
-    /**
-     * @param textSetter
-     * @param expr
-     * @constructor
-     * @implements {angular.core.Directive}
-     */
-    function(textSetter, expr) {
-      /**
-       * @param {angular.core.Scope} scope
-       */
-      this.attach = function(scope) {
-        //TODO(misko): no matter how much type annotation I put here it still
-        // lets me do the wrong thing. Change .$watch to .attach to see that no
-        // error is produced.
-        scope.$watch(expr, textSetter);
-      };
-    }
-  ],
 
-  'directive:[bindAttr]': ['@*', '$value', function(attrSetter, attrName, expr) {
-    attrSetter = attrSetter(attrName);
-    return {
-      attach: function(scope) {
-        scope.$watch(expr, attrSetter);
-      }
-    }
-  }],
-
-  'directive:[click]': ['$on_click', '$value', function(onClick, expr) {
-    return {
-      attach: function(scope) {
-        onClick(function(event) {
-          event.preventDefault();
-          scope.$apply(expr);
-        });
-      }
-    }
-  }],
-
-  'directive:[mouseOver]': ['$on_mouseOver', '$value', function(onMouseOver, expr) {
-    return {
-      attach: function(scope) {
-        onMouseOver(function(event) {
-          event.preventDefault();
-          scope.$apply(expr);
-        });
-      }
-    }
-  }],
-
-  'directive:[fadeOut]': ['$on_remove', function(onRemove) {
-    return {
-      attach: function(scope) {
-        onRemove(function(event) {
-          var defaultFn = event.preventDefault();
-
-          setTimeout(defaultFn, 500);
-          event.element.className += ' fadeout';
-        });
-      }
-    }
-  }],
-
-  'directive:[fadeIn]': ['$on_insert', function(onInsert) {
-    return {
-      attach: function(scope) {
-        onInsert(function(event) {
-          var defaultFn = event.preventDefault(),
-              originalClass = event.element.className;
-
-          event.element.className = originalClass + ' reverse fadeout';
-          defaultFn();
-          setTimeout(function() {
-            event.element.className = originalClass + ' reverse';
-          }, 0)
-          setTimeout(function() {
-            event.element.className = originalClass;
-          }, 500)
-        });
-      }
-    }
-  }]
-}).
-value('directive:[ngController]', function() {}).
-value('directive:input[type=text]', ['ngModel', '$on_keydown_change', '$prop_value', function(model, onChange, value){
+/**
+ * @param {angular.core.AttrAccessor} $text
+ * @param {string} $value
+ * @constructor
+ * @implements {angular.core.Directive}
+ */
+angular.core.directive.Bind = function($text, $value) {
+  /**
+   * @override
+   * @param {angular.core.Scope} scope
+   */
   this.attach = function(scope) {
-    onChange(function() {
-      setTimeout(function() {
-        scope.$apply(function() {
-          model.setValue(value());
-        });
-      }, 0);
+    scope.$watch($value, $text);
+  };
+};
+angular.annotate.$inject(['$text', '$value'], angular.core.directive.Bind);
+
+/**
+ *
+ * @param $on_click
+ * @param $value
+ * @return {Object}
+ * @constructor
+ * @implements {angular.core.Directive}
+ */
+angular.core.directive.Click = function($on_click, $value) {
+  this.attach = function(scope) {
+    $on_click(function(event) {
+      event.preventDefault();
+      scope.$apply($value);
     });
   };
-}]).
-factory('directive:[ngModel]', ['$parse', function($parse) {
+};
+angular.annotate.$inject(['$on_click', '$value'], angular.core.directive.Click);
 
-  NgModelController.$inject = ['$value'];
-  NgModelController.$name = 'ngModel';
-  NgModelController.$templateUrl = '';
+/**
+ *
+ * @param $on_mouseOver
+ * @param $value
+ * @return {Object}
+ * @constructor
+ * @implements {angular.core.Directive}
+ */
+angular.core.directive.OnMouseOver = function($on_mouseOver, $value) {
+  this.attach = function(scope) {
+    $on_mouseOver(function(event) {
+      event.preventDefault();
+      scope.$apply($value);
+    });
+  };
+};
+angular.annotate.$inject(['$on_mouseOver', '$value'], angular.core.directive.OnMouseOver);
 
-  function NgModelController (expr) {
-    var getter = $parse(expr),
-        setter = getter.assign;
+/**
+ *
+ * @param $on_remove
+ * @return {Object}
+ * @constructor
+ * @implements {angular.core.Directive}
+ */
+angular.core.directive.FadeOut = function($on_remove) {
+  this.attach = function(scope) {
+    $on_remove(function(event) {
+      var defaultFn = event.preventDefault();
 
-    this.setValue = function(value) {
-      setter(this.scope, value);
-    }
+      setTimeout(defaultFn, 500);
+      event.element.className += ' fadeout';
+    });
+  };
+};
+angular.annotate.$inject(['$on_remove'], angular.core.directive.FadeOut);
 
-    this.attach = function(scope) {
-      this.scope = scope;
-    }
+/**
+ *
+ * @param $on_insert
+ * @return {Object}
+ * @constructor
+ * @implements {angular.core.Directive}
+ */
+angular.core.directive.FadeIn = function($on_insert) {
+  this.attach = function(scope) {
+    $on_insert(function(event) {
+      var defaultFn = event.preventDefault(),
+          originalClass = event.element.className;
+
+      event.element.className = originalClass + ' reverse fadeout';
+      defaultFn();
+      setTimeout(function() {
+        event.element.className = originalClass + ' reverse';
+      }, 0)
+      setTimeout(function() {
+        event.element.className = originalClass;
+      }, 500)
+    });
+  };
+};
+angular.annotate.$inject(['$on_insert'], angular.core.directive.FadeIn);
+
+/**
+ * @param $anchor
+ * @param $value
+ * @param $service_$parse
+ * @constructor
+ * @implements {angular.core.Directive}
+ */
+angular.core.directive.Repeat = function($anchor, $value, $service_$parse) {
+  var collectionGetter,
+      itemSetter;
+
+  assertArg($value, 'parameter');
+
+  if (isString($value)) {
+    $value = $value.split(' in ');
   }
 
-  return NgModelController;
-}]).
-factory('directive:[repeat]', function($parse) {
-  RepeatController.$transclude = '.';
-  RepeatController.$priority = 1000;
-  RepeatController.$inject = ['$anchor', '$value'];
-  /**
-   * @param {angular.core.Anchor} anchor
-   * @param {string|Array.<string>} parameter
-   * @constructor
-   */
-  function RepeatController(anchor, parameter) {
-    var collectionGetter,
-        itemSetter;
+  collectionGetter = $service_$parse($value[1]);
+  itemSetter = $service_$parse($value[0]).assign;
 
-    assertArg(parameter, 'parameter');
+  this.attach = function(scope) {
+    var previousBlockMap = new HashMap();
 
-    if (isString(parameter)) {
-      parameter = parameter.split(' in ');
-    }
+    scope.$watch(function() {
+      var collection = collectionGetter(scope) || EMPTY_ARRAY,
+          currentBlockMap = new HashMap(),
+          i, ii = collection.length,
+          value, block, previousBlock,
+          iterationScope;
 
-    collectionGetter = $parse(parameter[1]);
-    itemSetter = $parse(parameter[0]).assign;
-
-    this.attach = function(scope) {
-      var previousBlockMap = new HashMap();
-
-      scope.$watch(function() {
-        var collection = collectionGetter(scope) || EMPTY_ARRAY,
-            currentBlockMap = new HashMap(),
-            i, ii = collection.length,
-            value, block, previousBlock,
-            iterationScope;
-
-        // find which blocks need to be removed
-        for(i = 0; i < ii; i++) {
-          value = collection[i];
-          block = previousBlockMap.remove(value);
-          if (block) {
-            currentBlockMap.put(value, block);
-          }
+      // find which blocks need to be removed
+      for(i = 0; i < ii; i++) {
+        value = collection[i];
+        block = previousBlockMap.remove(value);
+        if (block) {
+          currentBlockMap.put(value, block);
         }
-        // remove blocks
-        for(var key in previousBlockMap) {
-          if (previousBlockMap.hasOwnProperty(key)) {
-            previousBlockMap[key].remove();
-          }
+      }
+      // remove blocks
+      for(var key in previousBlockMap) {
+        if (previousBlockMap.hasOwnProperty(key)) {
+          previousBlockMap[key].remove();
         }
-        previousBlockMap = currentBlockMap;
-        previousBlock = anchor;
+      }
+      previousBlockMap = currentBlockMap;
+      previousBlock = $anchor;
 
-        for(i = 0; i < ii; i++) {
-          value = collection[i];
-          block = previousBlockMap.get(value);
+      for(i = 0; i < ii; i++) {
+        value = collection[i];
+        block = previousBlockMap.get(value);
 
-          if (!block) {
-            block = anchor.newBlock();
-            iterationScope = scope.$new();
-            itemSetter(iterationScope, value);
-            previousBlockMap.put(value, block);
-            block.$valueHashKey = hashKey(value);
-            iterationScope.$index = i;
-            block.attach(iterationScope);
-            block.insertAfter(previousBlock);
-          } else if (previousBlock.next == block) {
-            // do nothing
-          } else {
-            // move block.
-            block.moveAfter(previousBlock);
-          }
-          previousBlock = block;
+        if (!block) {
+          block = $anchor.newBlock();
+          iterationScope = scope.$new();
+          itemSetter(iterationScope, value);
+          previousBlockMap.put(value, block);
+          block.$valueHashKey = hashKey(value);
+          iterationScope.$index = i;
+          block.attach(iterationScope);
+          block.insertAfter(previousBlock);
+        } else if (previousBlock.next == block) {
+          // do nothing
+        } else {
+          // move block.
+          block.moveAfter(previousBlock);
         }
+        previousBlock = block;
+      }
 
-      });
-    }
+    });
   }
-  return RepeatController;
-});
+};
+angular.annotate.$inject(['$anchor', '$value', '$service_$parse'], angular.core.directive.Repeat);
+angular.core.directive.Repeat.$transclude = '.';
+angular.core.directive.Repeat.$priority = 1000;

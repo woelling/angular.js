@@ -2,7 +2,7 @@
 
 goog.provide('angular.core.$rootScope');
 
-goog.require('angular.core.$exceptionHandler');
+goog.require('angular.core.ExceptionHandler');
 goog.require('angular.core.$parse');
 goog.require('angular.core.Scope');
 

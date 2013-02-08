@@ -577,6 +577,39 @@ describe('injector', function() {
         }).toThrow('Unknown service: xyzzy from ' + myModule);
       });
 
+      it('should support function curry', function() {
+        var module = angular.module('curry');
+
+        module.value('a', 'A');
+        module.curry('curryFn', ['a', function(a, b) {
+          return a + b;
+        }])
+
+        expect(createInjector([module]).invoke(function (curryFn) {
+          return curryFn('B');
+        })).toEqual('AB');
+      });
+
+
+      it('should support function curryTypeFactory', function() {
+        var module = angular.module('curry');
+
+        function Type(a, b) {
+          this.result = a + b;
+        }
+
+        module.value('a', 'A');
+        module.curryTypeFactory('typeFactory', ['a', Type])
+
+        var type = createInjector([module]).invoke(function (typeFactory) {
+          return typeFactory('B');
+        });
+
+        expect(type instanceof Type).toEqual(true);
+        expect(type.constructor).toBe(Type);
+        expect(type.result).toEqual('AB');
+      });
+
 
       it('should throw error when trying to inject oneself', function() {
         expect(function() {

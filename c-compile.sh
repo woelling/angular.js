@@ -19,7 +19,11 @@ echo "files = [JASMINE, JASMINE_ADAPTER].
 
 FLAGS="--output_wrapper (function(){%output%})() \
        --summary_detail_level 3 \
+       --process_closure_primitives \
        --externs src/externs.js \
+       --manage_closure_dependencies \
+       --use_types_for_optimization \
+       --closure_entry_point angular.core.module \
        --language_in ECMASCRIPT5_STRICT \
        --jscomp_off nonStandardJsDocs \
        --jscomp_error accessControls \
@@ -47,14 +51,14 @@ FLAGS="--output_wrapper (function(){%output%})() \
        --jscomp_error visibility \
        "
 
-#OPTIMIZATION=SIMPLE_OPTIMIZATIONS
-OPTIMIZATION=ADVANCED_OPTIMIZATIONS
+$COMPILE --js_output_file build/c-angular.js \
+         --formatting PRETTY_PRINT \
+         --compilation_level SIMPLE_OPTIMIZATIONS \
+         $FLAGS --js $FILES \
 
-
-cat src/angular.prefix $FILES src/angular.suffix > build/c-angular.js
+exit;
 
 $COMPILE --js_output_file build/c-angular.min.js \
-         --formatting PRETTY_PRINT \
-         --compilation_level $OPTIMIZATION \
+         --compilation_level ADVANCED_OPTIMIZATIONS \
          $FLAGS --js $FILES \
 

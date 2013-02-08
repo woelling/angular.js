@@ -113,6 +113,10 @@ angular.Module.prototype.constant = function(name, value) {
  * @return {angular.Module}
  */
 angular.Module.prototype.factory = function(name, factory, isPrivate) {
+  assertArg(name, 'name');
+  if (isString(name)) {
+    assertArg(factory, /** @type {string} */ (name));
+  }
   this.factories_.push(arguments);
   return this;
 };
@@ -158,11 +162,30 @@ angular.module = function(name, dependencies, config) {
  * @param {string} name
  * @param {angular.Injectable} Type
  * @param {boolean=} isPrivate
+ * @returns {angular.Module}
  */
 angular.Module.prototype.curry = function(name, Type, isPrivate) {
-  this.factory(name, function($rootScope, $injector) {
+  this.factory(name, ['$injector', function($injector) {
     return $injector.curry(Type);
-  }, isPrivate);
+  }], isPrivate);
+  return this;
+};
+
+/**
+ * @param {string} name
+ * @param {angular.Injectable} Type
+ * @param {boolean=} isPrivate
+ * @returns {angular.Module}
+ */
+angular.Module.prototype.curryTypeFactory = function(name, Type, isPrivate) {
+  this.factory(name, ['$injector', function($injector) {
+    var CurriedType = $injector.curry(Type);
+
+    return function(a, b, c, d, e, f, g, h, i, j) {
+      if (arguments.length > 10) { throw Error('Too many arguments'); }
+      return new CurriedType(a, b, c, d, e, f, g, h, i, j);
+    };
+  }], isPrivate);
   return this;
 };
 
@@ -171,6 +194,13 @@ angular.Module.modules = {};
 
 // TODO(misko): temporary hack
 angular.Module.prototype.controller = noop;
+
+/**
+ *
+ * @param name
+ * @param Directive
+ * @returns {angular.Module}
+ */
 angular.Module.prototype.directive = function(name, Directive) {
   this.value('directive:' + name, Directive);
   return this;

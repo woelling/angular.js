@@ -7,7 +7,7 @@ goog.require('angular.core.$rootScope');
 goog.require('angular.core.$location');
 goog.require('angular.core.$q');
 goog.require('angular.core.$http');
-goog.require('angular.core.$templateCache');
+goog.require('angular.core.BlockTypeCache');
 
 goog.provide('angular.core.$route');
 

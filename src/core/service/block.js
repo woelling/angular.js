@@ -1,22 +1,30 @@
 'use strict';
 
-goog.require('angular.injector');
-goog.require('angular.core.$exceptionHandler');
-goog.require('angular.core.$template.select');
-
 goog.provide('angular.core.Block');
+goog.provide('angular.core.BlockFactory');
+
+goog.require('angular.injector');
+goog.require('angular.core.dom.select');
+goog.require('angular.core.ExceptionHandler');
+
 
 /**
- * @param {angular.core.$exceptionHandler} $exceptionHandler
- * @param {angular.core.$Anchor} $Anchor
+ * @typedef {function(*, *, *):angular.core.Block}
+ */
+angular.core.BlockFactory;
+
+
+/**
+ * @param {angular.core.ExceptionHandler} $exceptionHandler
+ * @param {angular.core.AnchorFactory} $anchorFactory
  * @param {angular.Injector} $directiveInjector
  * @param {angular.Injector} $injector
- * @param {Array.<Node>} elements
- * @param {?} directiveDefs
+ * @param {angular.core.NodeList} elements
+ * @param {Array.<angular.core.NodeDirectiveDef>} directiveDefs
  * @param {?} blocksForAnchors
  * @constructor
  */
-angular.core.Block = function($exceptionHandler, $Anchor, $directiveInjector, $injector,
+angular.core.Block = function($exceptionHandler, $anchorFactory, $directiveInjector, $injector,
                                elements, directiveDefs, blocksForAnchors) {
   this.$exceptionHandler = $exceptionHandler;
   this.elements = elements;
@@ -30,7 +38,7 @@ angular.core.Block = function($exceptionHandler, $Anchor, $directiveInjector, $i
   for(var i = 0, ii = directiveDefs.length; i < ii; i++) {
     var elementDirectiveDefs = directiveDefs[i] || EMPTY_ARRAY,
         elementSelector = elementDirectiveDefs[0],
-        element = angular.core.$template.select(elements, elementSelector)[0],
+        element = angular.core.dom.select(elements, elementSelector)[0],
         anchor,
         templates,
         directiveMap = {},
@@ -79,7 +87,7 @@ angular.core.Block = function($exceptionHandler, $Anchor, $directiveInjector, $i
         }
 
         if (directiveTemplate != undefined) {
-          locals.$anchor = anchor = new $Anchor([element], directiveTemplate);
+          locals.$anchor = anchor = $anchorFactory([element], directiveTemplate);
           templates = blocksForAnchors && blocksForAnchors[i];
           templates && angular.core.Block.loadExistingBlocksIntoAnchor(anchor, element, templates);
         }
@@ -98,7 +106,7 @@ angular.core.Block = function($exceptionHandler, $Anchor, $directiveInjector, $i
   }
 };
 
-angular.annotate.$inject(['$exceptionHandler', '$Anchor', '$directiveInjector', '$injector'], angular.core.Block, true);
+angular.annotate.$inject(['$exceptionHandler', '$anchorFactory', '$directiveInjector', '$injector'], angular.core.Block, true);
 
 angular.core.Block.loadExistingBlocksIntoAnchor = function (anchor, element, blocksForAnchor) {
   var lastTemplate = null;
@@ -348,3 +356,5 @@ angular.core.Block.prototype.moveAfter = function(previousBlock) {
 };
 
 angular.core.Block.emptyInjector = createInjector();
+
+

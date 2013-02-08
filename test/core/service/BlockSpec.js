@@ -3,15 +3,15 @@
 describe('Block', function() {
   beforeEach(module('core.test'));
 
-  var anchor, $rootElement, $template;
+  var anchor, $rootElement, $blockTypeFactory;
 
   beforeEach(module(function() {
-    return function($Anchor, _$template_, _$rootElement_) {
-      $template = _$template_;
+    return function($anchorFactory, _$blockTypeFactory_, _$rootElement_) {
+      $blockTypeFactory = _$blockTypeFactory_;
       $rootElement = _$rootElement_;
 
       $rootElement.html('<!-- anchor -->');
-      anchor = new $Anchor([$rootElement[0].firstChild]);
+      anchor = $anchorFactory([$rootElement[0].firstChild]);
     }
   }));
 
@@ -21,8 +21,8 @@ describe('Block', function() {
     beforeEach(inject());
 
     beforeEach(function() {
-      a = $template('<span>A</span>a')();
-      b = $template('<span>B</span>b')();
+      a = $blockTypeFactory('<span>A</span>a')();
+      b = $blockTypeFactory('<span>B</span>b')();
     });
 
 
@@ -97,7 +97,7 @@ describe('Block', function() {
 
       it('should remove free standing block', function() {
         $rootElement.html('<div><span class="b"></span></div>')
-        var block = $template('.b')('.b');
+        var block = $blockTypeFactory('.b')('.b');
 
         anchor.addExisting(block);
         block.remove();

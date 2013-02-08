@@ -1,6 +1,6 @@
 'use strict';
 
-goog.provide('angular.core.Selector');
+goog.provide('angular.core.selector');
 goog.provide('angular.core.Select');
 goog.require('angular.core.Directive')
 
@@ -10,24 +10,11 @@ goog.require('angular.core.Directive')
 angular.core.Select;
 
 /**
- * @typedef {{
- *   Directive: angular.core.DirectiveType,
- *   selector: string,
- *   element: Node,
- *   pseudoElement: boolean,
- *   name: string,
- *   value: string,
- *   childNodes: Array.<Node>
- * }}
- */
-angular.core.DirectiveInfo;
-
-/**
  * @param {Array.<string>} selectors the selectors.
  * @param {string=} startWith the required starting character for the selectors.
  * @returns {angular.core.Select} selector function.
  */
-angular.core.Selector = function (selectors, startWith) {
+angular.core.selector = function (selectors, startWith) {
   var elementMap = {},
       anyClassMap = {},
       anyAttrMap = {},
@@ -45,11 +32,11 @@ angular.core.Selector = function (selectors, startWith) {
       }
     }
 
-    if (match = selector.match(angular.core.Selector.CONTAINS_REGEXP)) {
+    if (match = selector.match(angular.core.selector.CONTAINS_REGEXP)) {
       textSelector.push({ selector: selector, regexp: new RegExp(match[1])});
-    } else if (match = selector.match(angular.core.Selector.ATTR_CONTAINS_REGEXP)) {
+    } else if (match = selector.match(angular.core.selector.ATTR_CONTAINS_REGEXP)) {
       attrSelector.push({ selector: selector, regexp: new RegExp(match[1])});
-    } else if (match = selector.match(angular.core.Selector.SELECTOR_REGEXP)){
+    } else if (match = selector.match(angular.core.selector.SELECTOR_REGEXP)){
       var elementName = match[1] || '',
           className = match[2] || '',
           attrName = match[3] || '',
@@ -177,7 +164,7 @@ angular.core.Selector = function (selectors, startWith) {
         }
         break;
       case 8: /* Comment */
-        var match = node.nodeValue.match(angular.core.Selector.COMMENT_COMPONENT_REGEXP);
+        var match = node.nodeValue.match(angular.core.selector.COMMENT_COMPONENT_REGEXP);
 
         if (match) {
           var commentDirectives = [],
@@ -218,7 +205,7 @@ angular.core.Selector = function (selectors, startWith) {
   return selector;
 };
 
-angular.core.Selector.SELECTOR_REGEXP = /^([\w\-]*)(?:\.([\w\-]*))?(?:\[([\w\-]*)(?:=(.*))?\])?$/;
-angular.core.Selector.COMMENT_COMPONENT_REGEXP = /^\[([\w\-]+)(?:\=(.*))?\]$/;
-angular.core.Selector.CONTAINS_REGEXP = /^:contains\(\/(.+)\/\)$/;
-angular.core.Selector.ATTR_CONTAINS_REGEXP = /^\[\*=\/(.+)\/\]$/;
+angular.core.selector.SELECTOR_REGEXP = /^([\w\-]*)(?:\.([\w\-]*))?(?:\[([\w\-]*)(?:=(.*))?\])?$/;
+angular.core.selector.COMMENT_COMPONENT_REGEXP = /^\[([\w\-]+)(?:\=(.*))?\]$/;
+angular.core.selector.CONTAINS_REGEXP = /^:contains\(\/(.+)\/\)$/;
+angular.core.selector.ATTR_CONTAINS_REGEXP = /^\[\*=\/(.+)\/\]$/;

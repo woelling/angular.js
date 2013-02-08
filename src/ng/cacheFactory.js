@@ -3,7 +3,7 @@
 goog.require('angular.core.module');
 
 goog.provide('angular.core.$cacheFactory');
-goog.provide('angular.core.$templateCache');
+goog.provide('angular.core.BlockTypeCache');
 
 angular.core.module.provider('$cacheFactory', $CacheFactoryProvider);
 angular.core.module.provider('$templateCache', $TemplateCacheProvider);

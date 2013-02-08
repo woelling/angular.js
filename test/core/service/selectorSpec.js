@@ -5,7 +5,7 @@ describe('Selector', function() {
   var selector;
   var element;
   var e = function(html) {
-    return  element = angular.core.$template.htmlToDOM(html)[0];
+    return  element = angular.core.dom.htmlToDOM(html)[0];
   }
 
   beforeEach(module(function($provide) {
@@ -23,7 +23,7 @@ describe('Selector', function() {
 
   }));
   beforeEach(inject(function($directiveInjector) {
-    selector = angular.core.Selector($directiveInjector.enumerate());
+    selector = angular.core.selector($directiveInjector.enumerate());
   }));
 
   it('should match directive on element', function() {
@@ -104,17 +104,17 @@ describe('Selector', function() {
 
     it('should fail on unparsable selector', function() {
       expect(function() {
-        angular.core.Selector(['&']);
+        angular.core.selector(['&']);
       }).toThrow('Unsupported Selector: &');
 
       expect(function() {
-        angular.core.Selector(['name.class[attr=value]']);
+        angular.core.selector(['name.class[attr=value]']);
       }).toThrow('Unsupported Selector: name.class[attr=value]');
     });
 
     it('should fail on unparsable selector', function() {
       expect(function() {
-        angular.core.Selector(['something'], '>');
+        angular.core.selector(['something'], '>');
       }).toThrow('Selector must start with: > was: something');
     });
   });

@@ -5,14 +5,13 @@ angular.module('core.test', ['core']).config(function($provide) {
 });
 
 describe('core.test', function() {
-  var select = angular.core.$template.select;
 
   beforeEach(module('core.test'));
 
-  var $rootScope, $rootElement, $template;
+  var $rootScope, $rootElement, $blockTypeFactory;
 
-  beforeEach(inject(function(_$template_, _$rootElement_, _$rootScope_) {
-    $template = _$template_;
+  beforeEach(inject(function(_$blockTypeFactory_, _$rootElement_, _$rootScope_) {
+    $blockTypeFactory = _$blockTypeFactory_;
     $rootElement = _$rootElement_;
     $rootScope = _$rootScope_;
   }));
@@ -24,7 +23,7 @@ describe('core.test', function() {
     it('should create a simple template', function() {
       $rootElement.html('<div></div>');
 
-      var template = $template('.', [
+      var template = $blockTypeFactory('.', [
         ['.', ['[bind]', 'name']]
       ]);
 
@@ -41,10 +40,10 @@ describe('core.test', function() {
 
     it('should create a nested template', function() {
       $rootElement.html('<ul class="ul"><!----></ul>');
-      var li = $template('<li></li>', [
+      var li = $blockTypeFactory('<li></li>', [
         ['.', ['[bind]', 'name']]
       ]);
-      var ul = $template('.', [
+      var ul = $blockTypeFactory('.', [
         ['.ul>0', ['[repeat]', 'name in names', li]]
       ]);
 
@@ -60,10 +59,10 @@ describe('core.test', function() {
 
     it('should create a nested template, but reuse block instances', function() {
       $rootElement.html('<ul class="ul"> <li class="a"></li><li class="b"></li></ul>');
-      var li = $template('.ul>1', [
+      var li = $blockTypeFactory('.ul>1', [
         ['.', ['[bind]', 'name']]
       ]);
-      var ul = $template('.', [
+      var ul = $blockTypeFactory('.', [
         ['.ul>0', ['[repeat]', 'name in names', li]]
       ]);
 
@@ -82,10 +81,10 @@ describe('core.test', function() {
 
     it('should create a nested template, reuse block instances, discard the rest', function() {
       $rootElement.html('<ul class="ul"> <li class="a"></li><li class="b"></li><li>extra</li></ul>');
-      var li = $template('.ul>1', [
+      var li = $blockTypeFactory('.ul>1', [
         ['.', ['[bind]', 'name']]
       ]);
-      var ul = $template('.', [
+      var ul = $blockTypeFactory('.', [
         ['.ul>0', ['[repeat]', 'name in names', li]]
       ]);
 
@@ -104,13 +103,13 @@ describe('core.test', function() {
 
     it('should create a nested template', function() {
       $rootElement.html('<ul class="ul"><!----></ul>');
-      var div = $template('<div></div>', [
+      var div = $blockTypeFactory('<div></div>', [
         ['.', ['[bind]', 'col']]
       ]);
-      var li = $template('<li><!----></li>', [
+      var li = $blockTypeFactory('<li><!----></li>', [
         ['.>0', ['[repeat]', 'col in cols', div]]
       ]);
-      var ul = $template('.', [
+      var ul = $blockTypeFactory('.', [
           ['.ul>0', ['[repeat]', 'cols in rows', li]]
       ]);
 
@@ -142,13 +141,13 @@ describe('core.test', function() {
             '</li>' +
             '<li><!----></li>' +
           '</ul>');
-      var div = $template('.li>1', [
+      var div = $blockTypeFactory('.li>1', [
         ['.', ['[bind]', 'col']]
       ]);
-      var li = $template('.li', [
+      var li = $blockTypeFactory('.li', [
         ['.>0+2', ['[repeat]', 'col in cols', div]]
       ]);
-      var ul = $template('.', [
+      var ul = $blockTypeFactory('.', [
         ['.ul>0+2', ['[repeat]', 'cols in rows', li]]
       ]);
 
@@ -174,66 +173,6 @@ describe('core.test', function() {
   });
 
 
-  describe('selectors', function() {
-    beforeEach(function() {
-      this.addMatchers({
-        toEqualDOM: function(expected) {
-          function toHtml(elements) {
-            if (elements) {
-              var parts = [];
-              for(var i = 0, ii = elements.length; i < ii ; i++) {
-                parts.push(angular.mock.dump(elements[i]));
-              }
-
-              return parts.join('');
-            } else {
-              return '';
-            }
-          }
-
-          this.message = function() {
-            return "Expected: " + expected + ' but was: ' + toHtml(this.actual);
-          }
-
-          return toHtml(this.actual) == expected;
-        }
-      });
-    });
-
-
-    it('should select current element', function() {
-      var dom = $('<div></div><span></span>');
-
-      expect(select(dom, '.')).toEqualDOM('<div></div>');
-    });
-
-
-    it('should select child element', function() {
-      var dom = $('<div><span>a</span><span>b</span></div>');
-
-      expect(select(dom, '.>1')).toEqualDOM('<span>b</span>');
-    });
-
-    it('should select child elements', function() {
-      var dom = $('<div>a<span>b</span><span>c</span>d</div>');
-
-      expect(select(dom, '.>1+1')).toEqualDOM('<span>b</span><span>c</span>');
-    });
-
-    it('should select elements by offset', function() {
-      var dom = $('<b></b><div></div><span></span><ul></ul>');
-      dom = [dom[0], dom[1], dom[2], dom[3]]; // jQuery is not really an array.
-
-      expect(select(dom, '1+1')).toEqualDOM('<div></div><span></span>');
-      expect(select(dom, '1')).toEqualDOM('<div></div>');
-      expect(function() {
-        select(dom, '4');
-      }).toThrow('Selector offset too big.');
-    });
-
-  });
-
-
   describe('directive injection', function() {
     it('should inject other directive', function(){
       var injectedB, b;
@@ -248,50 +187,12 @@ describe('core.test', function() {
       }
       B.$name = 'b';
 
-      $template('<div></div>', [
+      $blockTypeFactory('<div></div>', [
         ['.',  [A, null], [B, null]]
       ])();
 
       expect(b instanceof B).toBe(true);
       expect(injectedB).toBe(b);
-    });
-  });
-
-
-  describe('htmlToDOM', function() {
-    function expectHtmlCorrect(html) {
-      var parts = [];
-
-      angular.forEach(angular.core.$template.htmlToDOM(html), function(node) {
-        parts.push(angular.mock.dump(node));
-      });
-
-      expect(parts.join('')).toEqual(html);
-    }
-
-    it('should correctly parse html', function() {
-      expectHtmlCorrect('hello');
-      expectHtmlCorrect('<!--comment-->');
-      expectHtmlCorrect('<style></style>');
-      expectHtmlCorrect('<span>abc</span>hello');
-      expectHtmlCorrect('<legend>abc</legend>');
-      expectHtmlCorrect('<thead></thead>');
-      expectHtmlCorrect('<tbody></tbody>');
-      expectHtmlCorrect('<tfoot></tfoot>');
-      expectHtmlCorrect('<tr></tr>');
-      expectHtmlCorrect('<td></td>');
-      expectHtmlCorrect('<th></th>');
-      expectHtmlCorrect('<col>');
-      expectHtmlCorrect('<area>');
-      expectHtmlCorrect('<colgroup></colgroup>');
-
-      expectHtmlCorrect('<td>abc</td>');
-      expectHtmlCorrect('<!----><td>abc</td>');
-      expectHtmlCorrect('<tr><td>abc</td></tr>');
-      expectHtmlCorrect('<th>abc</th>');
-      expectHtmlCorrect('<tbody><tr><td>abc</td></tr></tbody>');
-      expectHtmlCorrect('<option>abc</option><option>xyz</option>');
-      expectHtmlCorrect('<title>abc</title>');
     });
   });
 });

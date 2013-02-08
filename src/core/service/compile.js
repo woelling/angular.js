@@ -1,41 +1,45 @@
 'use strict';
 
-goog.provide('angular.core.$compile');
+goog.provide('angular.core.Compile');
+goog.provide('angular.core.Compile.factory');
 
-goog.require('angular.core.$template');
 goog.require('angular.core.$interpolate');
 goog.require('angular.core.Select');
 
 /**
- * TODO: define
- * @typedef Array
+ * @typedef {function(angular.core.NodeList):angular.core.BlockType}
  */
-var ElementDirectivesDecl;
+angular.core.Compile;
 
-
-angular.core.$compileFactory = function($template, $directiveInjector) {
+/**
+ *
+ * @param {angular.core.BlockTypeFactory} $blockTypeFactory
+ * @param {angular.Injector} $directiveInjector
+ * @return {angular.core.Compile}
+ */
+angular.core.Compile.factory = function($blockTypeFactory, $directiveInjector) {
   /**
    *
    * @type {angular.core.Select}
    */
-  var selector = angular.core.Selector($directiveInjector.enumerate());
+  var selector = angular.core.selector($directiveInjector.enumerate());
 
   /**
-   * @param {Array.<Element>} elements the elements to compile.
-   * @returns {Function}
+   * @param {angular.core.NodeList} elements Elements to compile.
+   * @returns {angular.core.BlockType}
    */
   function compile(elements) {
     var directives = [];
 
     walkDOM(elements, directives);
 
-    return $template(elements, directives);
+    return $blockTypeFactory(elements, directives);
   };
 
   /**
-   * @param {NodeList|Array.<Element>} elements
+   * @param {angular.core.NodeList} elements
    * @param {Array} blockDirectives
-   * @param {Array.<ElementDirectivesDecl>=} elementDirectivesDecls
+   * @param {Array.<angular.core.ElementDirectivesDecl>=} elementDirectivesDecls
    */
   function walkDOM(elements, blockDirectives, elementDirectivesDecls) {
     for(var i = 0, ii = elements.length; i < ii ; i++) {
@@ -164,7 +168,7 @@ angular.core.$compileFactory = function($template, $directiveInjector) {
   /**
    * @param selector
    * @param childNodes
-   * @param {Array.<ElementDirectivesDecl>} elementDirectivesDecls
+   * @param {Array.<angular.core.ElementDirectivesDecl>} elementDirectivesDecls
    * @return {*}
    */
   function compileTransclusions(selector, childNodes, elementDirectivesDecls) {
@@ -172,9 +176,9 @@ angular.core.$compileFactory = function($template, $directiveInjector) {
       var directives = [];
 
       walkDOM(childNodes, directives, elementDirectivesDecls);
-      return $template(childNodes, directives);
+      return $blockTypeFactory(childNodes, directives);
     } else {
-      var childSelector = angular.core.Selector(selector.split(','), '>'),
+      var childSelector = angular.core.selector(selector.split(','), '>'),
           templates = {};
 
       for (var i = 0, ii = childNodes.length; i < ii; i++) {
@@ -245,8 +249,8 @@ angular.core.$compileFactory = function($template, $directiveInjector) {
   var ID_REGEXP = /\b(__ng_[\d\w]+)\b/;
 
   return function(element) {
-    return compile(isString(element) ? angular.core.$template.htmlToDOM(element) : element);
+    return compile(isString(element) ? angular.core.dom.htmlToDOM(element) : element);
   };
 };
 
-angular.annotate.$inject(['$template', '$directiveInjector'], angular.core.$compileFactory);
+angular.annotate.$inject(['$blockTypeFactory', '$directiveInjector'], angular.core.Compile.factory);

@@ -2,7 +2,7 @@
 
 goog.require('angular.core.$log');
 
-goog.provide('angular.core.$exceptionHandler');
+goog.provide('angular.core.ExceptionHandler');
 
 /**
  * @ngdoc function
@@ -37,4 +37,4 @@ function $ExceptionHandlerProvider() {
 /**
  * @typedef {function((Error|string), string=)}
  */
-angular.core.$exceptionHandler;
+angular.core.ExceptionHandler;

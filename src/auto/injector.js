@@ -9,6 +9,29 @@ goog.require('angular.apis');
 goog.require('angular.HashMap');
 
 
+// TODO(misko): fix!
+/*
+This error message is too ambiguis.  A better one would print function declarations through toString() and even location.
+
+ Error: Unknown service: $Anchor <- $blockFactory <- $template
+ at Error (<anonymous>)
+ at Object.TerminalInjector.get (/Users/misko/work/angular.js/src/auto/injector.js:759:15)
+ at Object.Injector.get (/Users/misko/work/angular.js/src/auto/injector.js:264:28)
+ at Object.Injector.curry (/Users/misko/work/angular.js/src/auto/injector.js:436:29)
+ at Object.<anonymous> (/Users/misko/work/angular.js/src/module.js:182:33)
+ at Object.invoke (/Users/misko/work/angular.js/src/auto/injector.js:346:28)
+ at Object.Injector.get (/Users/misko/work/angular.js/src/auto/injector.js:255:29)
+ at Object.invoke (/Users/misko/work/angular.js/src/auto/injector.js:327:24)
+ at Object.Injector.get (/Users/misko/work/angular.js/src/auto/injector.js:255:29)
+ at Object.invoke (/Users/misko/work/angular.js/src/auto/injector.js:327:24)
+ TypeError: undefined is not a function
+ at null.<anonymous> (/Users/misko/work/angular.js/test/core/service/BlockSpec.js:24:11)
+ TypeError: Cannot call method 'insertAfter' of undefined
+ at null.<anonymous> (/Users/misko/work/angular.js/test/core/service/BlockSpec.js:31:11)
+
+
+ */
+
 /**
  * @interface
  */
@@ -265,6 +288,24 @@ function createInjector(modulesToLoad) {
     },
 
     /**
+     *
+     * @param {angular.Injectable} fn
+     * @return {Array}
+     */
+    getFnArgs: function(fn) {
+      var $inject = annotate(fn),
+          i = 0, ii = $inject.length,
+          fn = fn.$inject == $inject ? fn : fn[ii],
+          args = [fn];
+
+      for(; i < ii; i++) {
+        args.push(this.get($inject[i]));
+      }
+
+      return args;
+    },
+
+    /**
      * @ngdoc method
      * @name AUTO.$injector#enumerate
      * @methodOf AUTO.$injector
@@ -319,32 +360,11 @@ function createInjector(modulesToLoad) {
      * </pre>
      */
     invoke: function invoke(fn, self){
-      var args = [],
+      var args = this.getFnArgs(fn),
           $inject = annotate(fn),
           i, ii;
 
-      for(i = 0, ii = $inject.length; i < ii; i++) {
-        args.push(this.get($inject[i]));
-      }
-      if (!fn.$inject) {
-        // this means that we must be an array.
-        fn = fn[ii];
-      }
-
-
-      // Performance optimization: http://jsperf.com/apply-vs-call-vs-invoke
-      switch (self ? -1 : args.length) {
-        case  0: return fn();
-        case  1: return fn(args[0]);
-        case  2: return fn(args[0], args[1]);
-        case  3: return fn(args[0], args[1], args[2]);
-        case  4: return fn(args[0], args[1], args[2], args[3]);
-        case  5: return fn(args[0], args[1], args[2], args[3], args[4]);
-        case  6: return fn(args[0], args[1], args[2], args[3], args[4], args[5]);
-        case  7: return fn(args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
-        case  8: return fn(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
-        default: return fn.apply(self, args);
-      }
+      return args.shift().apply(self, args)
     },
 
 
@@ -421,23 +441,16 @@ function createInjector(modulesToLoad) {
      */
     curry: function(delegate) {
       var injector = this;
-      var delegateFn = isArray(delegate) ? delegate[delegate.length - 1] : delegate;
+      var curryArgs = this.getFnArgs(delegate);
       var curriedFn = function() {
-        var curriedArguments = curryArgs.concat(slice.call(arguments, 0));
-        var returnValue = delegateFn.apply(this, curriedArguments);
+        var args = curryArgs.concat(slice.call(arguments, 0));
+        var isConstructorInvocation = this instanceof curriedFn;
+        var returnValue = args.shift().apply(this, args);
 
         return returnValue == undefined && this instanceof curriedFn ? this : returnValue;
       };
-      var curryArgs = [],
-          $inject = annotate(delegate),
-          i, ii;
 
-      for(i = 0, ii = $inject.length; i < ii; i++) {
-        curryArgs.push(this.get($inject[i]));
-      }
-
-      curriedFn.prototype = (isArray(delegate) ? delegateFn[delegate.length - 1] : delegate).prototype;
-
+      curriedFn.prototype = (isArray(delegate) ? delegate[delegate.length - 1] : delegate).prototype;
       return curriedFn;
     },
 

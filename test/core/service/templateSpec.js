@@ -3,17 +3,17 @@
 describe('template', function() {
   beforeEach(module('core.test'));
 
-  var $rootElement, $template, toHtml = angular.mock.dump;
+  var $rootElement, $blockTypeFactory, toHtml = angular.mock.dump;
 
-  beforeEach(inject(function($Anchor, _$template_, _$rootElement_) {
-    $template = _$template_;
+  beforeEach(inject(function(_$blockTypeFactory_, _$rootElement_) {
+    $blockTypeFactory = _$blockTypeFactory_;
     $rootElement = _$rootElement_;
   }));
 
 
   describe('create', function() {
     it('should create template from HTML', function() {
-      var template = $template('<span>A</span>');
+      var template = $blockTypeFactory('<span>A</span>');
 
       var a = template();
       var b = template();
@@ -28,7 +28,7 @@ describe('template', function() {
 
     it('should create template from DOM', function() {
       $rootElement.html('<span class="id">A</span>')
-      var template = $template('.id');
+      var template = $blockTypeFactory('.id');
 
       var a = template();
       var b = template();

@@ -16,6 +16,38 @@ describe('injector', function() {
     injector = $injector;
     annotate = injector.annotate;
   }));
+  beforeEach(function() {
+    this.addMatchers({
+      toThrow: function(expectations) {
+        var success = true;
+
+        if (typeof expectations == 'string') {
+          expectations = [expectations];
+        }
+        try {
+          this.actual();
+        } catch (e) {
+          var msg = e.message || e;
+          forEach(expectations, function(expectation) {
+            var pass;
+
+            if (typeof expectation == 'string') {
+              expect(pass = (msg.indexOf(expectation) > -1)).toEqual(true);
+            } else {
+              expect(pass = expectation.test(msg)).toEqual(true);
+            }
+            success = success && pass;
+          });
+        }
+
+        this.message = function() {
+          return 'Expected: \n' + expectations.join('/n') + '\nActual: \n' + msg;
+        };
+
+        return success;
+      }
+    });
+  });
 
 
   it("should return same instance from calling provider", function() {
@@ -71,25 +103,67 @@ describe('injector', function() {
   });
 
 
-  it('should provide useful message if no provider', function() {
-    expect(function() {
-      injector.get('idontexist');
-    }).toThrow("Unknown service: idontexist");
-  });
-
-
-  it('should proved path to the missing provider', function() {
-    providers('a', function(idontexist) {return 1;});
-    providers('b', function(a) {return 2;});
-    expect(function() {
-      injector.get('b');
-    }).toThrow("Unknown service: idontexist <- a <- b");
-  });
-
-
   it('should create a new $injector for the run phase', inject(function($injector) {
     expect($injector).not.toBe(providerInjector);
   }));
+
+
+  describe('error handling', function() {
+
+    it('should provide useful message if no provider', function() {
+      expect(function() {
+        injector.get('idontexist');
+      }).toThrow("Unknown service: idontexist");
+    });
+
+
+    it('should provide path to the missing provider', function() {
+      providers('a', function(idontexist) {return 1;});
+      providers('b', function(a) {return 2;});
+      expect(function() {
+        injector.get('b');
+      }).toThrow("Unknown service: idontexist");
+    });
+
+
+    it('should provide function signatures numbers', function() {
+      var module = angular.module('a', []).
+          factory('child', function(missing) {}).
+          factory('root', function(child) {});
+      var injector = angular.injector(['a']);
+
+      try {
+        injector.get('root');
+        expect('fail').toBe(true);
+      } catch (e) {
+        var message = e.message;
+
+        expect(/missing requested by function \(missing\)/.test(message)).toEqual(true);
+        expect(/child requested by function \(child\)/.test(message)).toEqual(true);
+        expect(/root requested by \<imperitive\>/.test(message)).toEqual(true);
+      }
+    });
+
+
+
+    it('should provide function line numbers', function() {
+      var module = angular.module('a', []).
+          factory('child', angular.annotate.$inject(['missing'], function(missing) {})).
+          factory('root', angular.annotate.$inject(['child'], function(child) {}));
+      var injector = angular.injector(['a']);
+
+      try {
+        injector.get('root');
+        expect('fail').toBe(true);
+      } catch (e) {
+        var message = e.message;
+
+        expect(/missing requested by function \(missing\).*injectorSpec.js/.test(message)).toEqual(true);
+        expect(/child requested by function \(child\).*injectorSpec.js/.test(message)).toEqual(true);
+        expect(/root requested by \<imperitive\>/.test(message)).toEqual(true);
+      }
+    });
+  });
 
 
   describe('invoke', function() {
@@ -558,7 +632,10 @@ describe('injector', function() {
         angular.module('TestModule', [], function(xyzzy) {});
         expect(function() {
           createInjector(['TestModule']);
-        }).toThrow('Unknown service: xyzzy from module \'TestModule\'');
+        }).toThrow([
+            'Unknown service: xyzzy',
+            'from module \'TestModule\''
+        ]);
       });
 
 
@@ -566,7 +643,10 @@ describe('injector', function() {
         function myModule(xyzzy){}
         expect(function() {
           createInjector([myModule]);
-        }).toThrow('Unknown service: xyzzy from ' + myModule);
+        }).toThrow([
+            'Unknown service: xyzzy',
+            'from ' + myModule
+        ]);
       });
 
 
@@ -574,7 +654,10 @@ describe('injector', function() {
         function myModule(xyzzy){}
         expect(function() {
           createInjector([['xyzzy', myModule]]);
-        }).toThrow('Unknown service: xyzzy from ' + myModule);
+        }).toThrow([
+          'Unknown service: xyzzy',
+          'from ' + myModule
+        ]);
       });
 
       it('should support function curry', function() {
@@ -628,7 +711,7 @@ describe('injector', function() {
             $provide.factory('b', function(a){});
             return function(a) {}
           }])
-        }).toThrow('Circular dependency: b <- a');
+        }).toThrow('Circular dependency: b');
       });
     });
 
@@ -857,7 +940,10 @@ describe('injector', function() {
         createInjector([function($provide) {
           $provide.value('name', 'angular')
         }, instanceLookupInModule]);
-      }).toThrow('Unknown service: name from ' + String(instanceLookupInModule));
+      }).toThrow([
+        'Unknown service: name',
+        'from ' + String(instanceLookupInModule)
+      ]);
     });
   });
 

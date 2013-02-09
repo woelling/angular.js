@@ -7,6 +7,7 @@ goog.require('angular.injector');
 /**
  * @typedef {{
  *   $inject: (Array.<string>|undefined),
+ *   $injectLocation: (Error|undefined),
  *   $selector: (string|undefined),
  *   $transclude: (string|undefined),
  *   $priority: (number|undefined)
@@ -44,5 +45,7 @@ angular.annotate.$inject = function($inject, fn, curry) {
     }
   }
   fnInfo.$inject = $inject;
+  fnInfo.$injectLocation = new Error();
+  return fn;
 };
 

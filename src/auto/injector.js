@@ -9,41 +9,24 @@ goog.require('angular.apis');
 goog.require('angular.HashMap');
 
 
-// TODO(misko): fix!
-/*
-This error message is too ambiguis.  A better one would print function declarations through toString() and even location.
-
- Error: Unknown service: $Anchor <- $blockFactory <- $template
- at Error (<anonymous>)
- at Object.TerminalInjector.get (/Users/misko/work/angular.js/src/auto/injector.js:759:15)
- at Object.Injector.get (/Users/misko/work/angular.js/src/auto/injector.js:264:28)
- at Object.Injector.curry (/Users/misko/work/angular.js/src/auto/injector.js:436:29)
- at Object.<anonymous> (/Users/misko/work/angular.js/src/module.js:182:33)
- at Object.invoke (/Users/misko/work/angular.js/src/auto/injector.js:346:28)
- at Object.Injector.get (/Users/misko/work/angular.js/src/auto/injector.js:255:29)
- at Object.invoke (/Users/misko/work/angular.js/src/auto/injector.js:327:24)
- at Object.Injector.get (/Users/misko/work/angular.js/src/auto/injector.js:255:29)
- at Object.invoke (/Users/misko/work/angular.js/src/auto/injector.js:327:24)
- TypeError: undefined is not a function
- at null.<anonymous> (/Users/misko/work/angular.js/test/core/service/BlockSpec.js:24:11)
- TypeError: Cannot call method 'insertAfter' of undefined
- at null.<anonymous> (/Users/misko/work/angular.js/test/core/service/BlockSpec.js:31:11)
-
-
- */
-
 /**
  * @interface
  */
 angular.Injector = function() {};
 
+angular.Injector.notImplemented = function() {
+  throw Error('NOT IMPLEMENTED');
+};
+
 /**
  * @template T
  * Get a service.
  * @param {string} name service name to return.
+ * @param {Function=} contextFn Function which is requesting the
+ *    injection. Used for debugging purposes.
  * @return {T} .
  */
-angular.Injector.prototype.get = function(name) {};
+angular.Injector.prototype.get = function(name, contextFn) {};
 
 /**
  * Invoke a method.
@@ -148,15 +131,17 @@ function createInjector(modulesToLoad) {
   var path = [];
   var pathHash = {}
 
-  function pathPush(name) {
+  function pathPush(name, contextFunction) {
     if (pathHash[name]) {
-      throw Error('Circular dependency: ' + path.join(' <- '));
+      angular.Injector.error(path, 'Circular dependency');
     }
     pathHash[name] = true;
-    path.unshift(name);
+    path.push(name);
+    path.push(contextFunction);
   }
 
   function pathPop() {
+    path.pop();
     pathHash[path.shift()] = false;
   }
 
@@ -247,6 +232,8 @@ function createInjector(modulesToLoad) {
      * Return an instance of the service.
      *
      * @param {string} name The name of the instance to retrieve.
+     * @param {Function=} contextFn Function which is requesting the
+     *    injection. Used for debugging purposes.
      * @return {*} The instance.
      *
      * <pre>
@@ -257,7 +244,7 @@ function createInjector(modulesToLoad) {
      *   expect(injector.get('salutation')).toEqual('Hello');
      * </pre>
      */
-    get: function(name) {
+    get: function(name, contextFn) {
       var instances = this.$$instances,
           instance = instances[name],
           provider;
@@ -273,7 +260,7 @@ function createInjector(modulesToLoad) {
       if (provider instanceof Array) {
         provider = provider[0];
         if (provider.$private || this.$$providers.hasOwnProperty(name + PROVIDER_SUFFIX)) {
-          pathPush(name);
+          pathPush(name, contextFn);
           try {
             instance = this.invoke(provider.$get, provider);
             instances[name] = [instance, provider.$private];
@@ -284,7 +271,7 @@ function createInjector(modulesToLoad) {
         }
       }
 
-      return this.$$parent.get(name);
+      return this.$$parent.get(name, contextFn);
     },
 
     /**
@@ -295,11 +282,11 @@ function createInjector(modulesToLoad) {
     getFnArgs: function(fn) {
       var $inject = annotate(fn),
           i = 0, ii = $inject.length,
-          fn = fn.$inject == $inject ? fn : fn[ii],
+          nakedFn = fn.$inject == $inject ? fn : fn[ii],
           args = [fn];
 
       for(; i < ii; i++) {
-        args.push(this.get($inject[i]));
+        args.push(this.get($inject[i], nakedFn));
       }
 
       return args;
@@ -754,7 +741,10 @@ function createInjector(modulesToLoad) {
   };
 
 
-  /** @constructor */
+  /**
+   * @implements {angular.Injector}
+   * @constructor
+   */
   function TerminalInjector() {
     this.$$providers = {};
     this.$$instances = {};
@@ -762,14 +752,23 @@ function createInjector(modulesToLoad) {
   }
 
   TerminalInjector.prototype = {
+    /** @override */
     load: Injector.prototype.load,
+    /** @override */
+    instantiate: angular.Injector.notImplemented,
+    /** @override */
+    invoke: angular.Injector.notImplemented,
+    /** @override */
+    locals: angular.Injector.notImplemented,
+    /** @override */
     enumerate: function() {
       return [];
     },
-    get: function(name) {
-      pathPush(name);
+    /** @override */
+    get: function(name, contextFn) {
+      pathPush(name, contextFn);
       try {
-        throw Error('Unknown service: ' + path.join(' <- '));
+        angular.Injector.error(path, 'Unknown service');
       } finally {
         pathPop();
       }
@@ -1153,6 +1152,47 @@ function createInjector(modulesToLoad) {
 
   return new TerminalInjector().load(modulesToLoad)
 }
+
+/**
+ *
+ * @param {Array.<string|angular.annotate.Info>} path
+ * @param {string} reason
+ */
+angular.Injector.error = function(path, reason) {
+  var index = path.length - 1;
+  var error = [reason + ': ' + path[index - 1] ];
+
+  while(index>0) {
+    /** @type {angular.annotate.Info} */;
+    var info = /** @type {angular.annotate.Info} */ (path[index--]);
+
+    /** @type {string} */
+    var name = /** @type {string} */ (path[index--]);
+
+    error.push('   service: ' + name + ' requested by ' + angular.Injector.error.extractLocation(info));
+
+  }
+  throw new Error(error.join('\n'));
+}
+
+/**
+ *
+ * @param {angular.annotate.Info} fn
+ */
+angular.Injector.error.extractLocation = function(fn) {
+  if (!fn) return '<imperitive>';
+  /** @type {angular.annotate.Info} */
+  var info = fn;
+  var source = fn.toString();
+  var match = source.match(FN_ARGS);
+  var injectLocation = fn.$injectLocation ;
+  var location = injectLocation ? injectLocation.stack.split('\n')[2] : '';
+
+  return match[0] + ' { ... }' + location;
+}
+
+angular.Injector.error.extractLocation.REGEXP_ = /^([^\{]+\{).*(\}.*)$/;
+
 
 //TODO(misko): clean up
 angular.injector = createInjector;

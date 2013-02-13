@@ -61,8 +61,10 @@ var ngRepeatDirective = ngDirective({
   transclude: 'element',
   priority: 1000,
   terminal: true,
+  require: '?ngAnimate', // optionally
   compile: function(element, attr, linker) {
-    return function(scope, iterStartElement, attr){
+    return function(scope, iterStartElement, attr, ngAnimate){
+      ngAnimate = ngAnimate || new AnimationController();
       var expression = attr.ngRepeat;
       var match = expression.match(/^\s*(.+)\s+in\s+(.*)\s*$/),
         lhs, rhs, valueIdent, keyIdent;
@@ -141,7 +143,7 @@ var ngRepeatDirective = ngDirective({
               // This may be a noop, if the element is next, but I don't know of a good way to
               // figure this out,  since it would require extra DOM access, so let's just hope that
               // the browsers realizes that it is noop, and treats it as such.
-              cursor.after(last.element);
+              ngAnimate.animate('move', last.element, iterStartElement.parent(), cursor);
               cursor = last.element;
             }
           } else {
@@ -159,6 +161,7 @@ var ngRepeatDirective = ngDirective({
 
           if (!last) {
             linker(childScope, function(clone){
+              ngAnimate.animate('enter', clone, iterStartElement.parent(), cursor);
               cursor.after(clone);
               last = {
                   scope: childScope,
@@ -176,7 +179,7 @@ var ngRepeatDirective = ngDirective({
             array = lastOrder[key];
             while(array.length) {
               value = array.pop();
-              value.element.remove();
+              ngAnimate.animate('leave', value.element, value.element.parent());
               value.scope.$destroy();
             }
           }

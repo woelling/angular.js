@@ -9,11 +9,22 @@ describe('core.test', function() {
   beforeEach(module('core.test'));
 
   var $rootScope, $rootElement, $blockTypeFactory;
+  var Repeat, Bind;
 
-  beforeEach(inject(function(_$blockTypeFactory_, _$rootElement_, _$rootScope_) {
+  var NDD = angular.core.NodeDirectiveDef;
+  var DD = angular.core.DirectiveDef;
+  var BC = angular.core.BlockCache;
+  var s;
+
+  beforeEach(inject(function(_$blockTypeFactory_, _$rootElement_, _$rootScope_, $directiveInjector) {
     $blockTypeFactory = _$blockTypeFactory_;
     $rootElement = _$rootElement_;
     $rootScope = _$rootScope_;
+
+    Repeat = $directiveInjector.get('[repeat]');
+    Bind = $directiveInjector.get('[bind]');
+
+    s = bind(null, angular.core.dom.select, $rootElement);
   }));
 
   describe('template', function() {
@@ -23,11 +34,13 @@ describe('core.test', function() {
     it('should create a simple template', function() {
       $rootElement.html('<div></div>');
 
-      var template = $blockTypeFactory('.', [
-        ['.', ['[bind]', 'name']]
+      var BlockType = $blockTypeFactory($rootElement, [
+          new NDD('.', [
+            new DD(Bind, 'name')
+          ])
       ]);
 
-      var block = template('.');
+      var block = new BlockType($rootElement);
 
       block.attach($rootScope);
 
@@ -40,14 +53,18 @@ describe('core.test', function() {
 
     it('should create a nested template', function() {
       $rootElement.html('<ul class="ul"><!----></ul>');
-      var li = $blockTypeFactory('<li></li>', [
-        ['.', ['[bind]', 'name']]
+      var LI = $blockTypeFactory('<li></li>', [
+        new NDD('.', [
+          new DD(Bind, 'name')
+        ])
       ]);
-      var ul = $blockTypeFactory('.', [
-        ['.ul>0', ['[repeat]', 'name in names', li]]
+      var UL = $blockTypeFactory($rootElement, [
+        new NDD('.ul>0', [
+          new DD(Repeat, 'name in names', {'': LI})
+        ])
       ]);
 
-      var block = ul('.');
+      var block = new UL($rootElement);
       block.attach($rootScope);
 
       $rootScope.names = ['misko', 'igor'];
@@ -59,15 +76,16 @@ describe('core.test', function() {
 
     it('should create a nested template, but reuse block instances', function() {
       $rootElement.html('<ul class="ul"> <li class="a"></li><li class="b"></li></ul>');
-      var li = $blockTypeFactory('.ul>1', [
-        ['.', ['[bind]', 'name']]
+      var LI = $blockTypeFactory($rootElement.find('li').eq(0), [
+        new NDD('.', [ new DD(Bind, 'name') ])
       ]);
-      var ul = $blockTypeFactory('.', [
-        ['.ul>0', ['[repeat]', 'name in names', li]]
+      var UL = $blockTypeFactory($rootElement.find('ul'), [
+        new NDD('.ul>0', [ new DD(Repeat, 'name in names', {'': LI}) ])
       ]);
+      var lis = $rootElement.find('li');
 
-      var block = ul('.', [
-        [li, 2]
+      var block = new UL($rootElement, [
+        new BC([LI(lis.eq(0)), LI(lis.eq(1))])
       ]);
       block.attach($rootScope);
 
@@ -81,15 +99,20 @@ describe('core.test', function() {
 
     it('should create a nested template, reuse block instances, discard the rest', function() {
       $rootElement.html('<ul class="ul"> <li class="a"></li><li class="b"></li><li>extra</li></ul>');
-      var li = $blockTypeFactory('.ul>1', [
-        ['.', ['[bind]', 'name']]
+      var LI = $blockTypeFactory($rootElement.ngFind('.ul>1'), [
+        new NDD('.', [
+          new DD(Bind, 'name')
+        ])
       ]);
-      var ul = $blockTypeFactory('.', [
-        ['.ul>0', ['[repeat]', 'name in names', li]]
+      var UL = $blockTypeFactory($rootElement, [
+        new NDD('.ul>0', [
+          new DD(Repeat, 'name in names', {'': LI})
+        ])
       ]);
+      var lis = $rootElement.find('li');
 
-      var block = ul('.', [
-        [li, 3]
+      var block = UL($rootElement, [
+        new BC([LI(lis.eq(0)), LI(lis.eq(1)), LI(lis.eq(2))])
       ]);
       block.attach($rootScope);
 
@@ -104,16 +127,16 @@ describe('core.test', function() {
     it('should create a nested template', function() {
       $rootElement.html('<ul class="ul"><!----></ul>');
       var div = $blockTypeFactory('<div></div>', [
-        ['.', ['[bind]', 'col']]
+        new NDD('.', [new DD(Bind, 'col')])
       ]);
       var li = $blockTypeFactory('<li><!----></li>', [
-        ['.>0', ['[repeat]', 'col in cols', div]]
+        new NDD('.>0', [new DD(Repeat, 'col in cols', {'': div})])
       ]);
-      var ul = $blockTypeFactory('.', [
-          ['.ul>0', ['[repeat]', 'cols in rows', li]]
+      var ul = $blockTypeFactory($rootElement, [
+        new NDD('.ul>0', [new DD(Repeat, 'cols in rows', {'': li})])
       ]);
 
-      var block = ul('.');
+      var block = ul($rootElement);
       block.attach($rootScope);
 
       $rootScope.rows = [['r0c0', 'r0c1'], ['r1c0', 'r1c1']];
@@ -141,18 +164,26 @@ describe('core.test', function() {
             '</li>' +
             '<li><!----></li>' +
           '</ul>');
-      var div = $blockTypeFactory('.li>1', [
-        ['.', ['[bind]', 'col']]
+      var div = $blockTypeFactory(s('.li>1'), [
+        new NDD('.', [new DD(Bind, 'col')])
       ]);
-      var li = $blockTypeFactory('.li', [
-        ['.>0+2', ['[repeat]', 'col in cols', div]]
+      var li = $blockTypeFactory(s('.li'), [
+        new NDD('.>0+2', [new DD(Repeat, 'col in cols', {'': div})])
       ]);
-      var ul = $blockTypeFactory('.', [
-        ['.ul>0+2', ['[repeat]', 'cols in rows', li]]
+      var ul = $blockTypeFactory($rootElement, [
+        new NDD('.ul>0+2', [new DD(Repeat, 'cols in rows', {'': li})])
       ]);
 
-      var block = ul('.', [
-        [li, [[div, 2]], 1]
+      var block = ul($rootElement, [
+        new BC([
+          li(s('.ul>1'), [
+            new BC([
+              div(s('.li>1')),
+              div(s('.li>2'))
+            ])
+          ]),
+          li(s('.ul>2'))
+        ])
       ]);
       block.attach($rootScope);
 
@@ -160,15 +191,15 @@ describe('core.test', function() {
       $rootScope.$apply();
 
       expect($rootElement.html()).toEqual(
-          '<ul class="ul">' +
-            '<!---->' +
-            '<li class="li">' +
-              '<!----><div>r0c0</div><div>r0c1</div>' +
-            '</li>' +
-            '<li>' +
-              '<!----><div>r1c0</div><div>r1c1</div>' +
-            '</li>' +
-          '</ul>');
+        '<ul class="ul">' +
+          '<!---->' +
+          '<li class="li">' +
+            '<!----><div>r0c0</div><div>r0c1</div>' +
+          '</li>' +
+          '<li>' +
+            '<!----><div>r1c0</div><div>r1c1</div>' +
+          '</li>' +
+        '</ul>');
     });
   });
 
@@ -188,7 +219,7 @@ describe('core.test', function() {
       B.$name = 'b';
 
       $blockTypeFactory('<div></div>', [
-        ['.',  [A, null], [B, null]]
+        new NDD('.',  [new DD(A), new DD(B)])
       ])();
 
       expect(b instanceof B).toBe(true);

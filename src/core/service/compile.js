@@ -7,7 +7,7 @@ goog.require('angular.core.$interpolate');
 goog.require('angular.core.Select');
 
 /**
- * @typedef {function(angular.core.NodeList):angular.core.BlockType}
+ * @typedef {function((angular.core.NodeList|string)):angular.core.BlockType}
  */
 angular.core.Compile;
 
@@ -18,104 +18,90 @@ angular.core.Compile;
  * @return {angular.core.Compile}
  */
 angular.core.Compile.factory = function($blockTypeFactory, $directiveInjector) {
-  /**
-   *
-   * @type {angular.core.Select}
-   */
+  /** @type {angular.core.SelectorFn} */
   var selector = angular.core.selector($directiveInjector.enumerate());
 
   /**
    * @param {angular.core.NodeList} elements Elements to compile.
+   * @param {Array.<angular.core.BlockCache>=} blockCache
    * @returns {angular.core.BlockType}
    */
-  function compile(elements) {
+  function compile(elements, blockCache) {
+    VERIFY(arguments,
+      ARG('elements').is(angular.core.NodeList),
+      ARG('blockCache').is(ARRAY(angular.core.BlockCache), undefined));
+
+    /** @type Array.<angular.core.NodeDirectiveDef> */
     var directives = [];
 
-    walkDOM(elements, directives);
-
+    walkDOM(elements, directives, blockCache);
     return $blockTypeFactory(elements, directives);
   };
 
   /**
    * @param {angular.core.NodeList} elements
-   * @param {Array} blockDirectives
-   * @param {Array.<angular.core.ElementDirectivesDecl>=} elementDirectivesDecls
+   * @param {Array.<angular.core.NodeDirectiveDef>} nodeDirectiveDefs
+   * @param {Array.<angular.core.BlockCache>=} blockCache
+   * @param {Array.<angular.core.DirectiveInfo>=} useExistingDirectiveInfos
    */
-  function walkDOM(elements, blockDirectives, elementDirectivesDecls) {
+  function walkDOM(elements, nodeDirectiveDefs, blockCache, useExistingDirectiveInfos) {
     for(var i = 0, ii = elements.length; i < ii ; i++) {
-      var node = elements[i],
-          elementDirectivesDecl,
-          compileChildren = true,
-          nodeId = null;
-
-      if (elementDirectivesDecls) {
-        elementDirectivesDecl = elementDirectivesDecls[i];
-      } else {
-        elementDirectivesDecl =  selector(node);
-
-        // Resolve the Directive Controllers
-        for(var j = 0, jj = elementDirectivesDecl.length; j < jj; j++) {
-          var directiveDecl = elementDirectivesDecl[j];
-          var Directive  = $directiveInjector.get(directiveDecl.selector);
-
-          if (Directive.$generate) {
-            var generatedDirectives = Directive.$generate(directiveDecl.value);
-
-            for (var k = 0, kk = generatedDirectives.length; k < kk; k++) {
-              var generatedDirective = generatedDirectives[k],
-                  directiveInfo = shallowCopy(directiveDecl);
-
-              directiveInfo.selector = generatedDirective[0];
-              directiveInfo.name = generatedDirective[0];
-              directiveInfo.value = generatedDirective[1];
-
-              elementDirectivesDecl.push(directiveInfo);
-            }
-            jj = elementDirectivesDecl.length;
-          }
-
-          directiveDecl.Directive = Directive;
-        }
-      }
+      /** @type {Node} */
+      var node = elements[i];
+      /** @type {Array.<angular.core.DirectiveInfo>} */
+      var nodeDirectiveInfos = useExistingDirectiveInfos || extractDirectiveInfos(node);
+      /** @type {boolean} */
+      var compileChildren = true;
 
       // Sort
-      elementDirectivesDecl.sort(priorityComparator);
+      nodeDirectiveInfos.sort(priorityComparator);
 
       // process the directives
-      for(var k = 0, kk = elementDirectivesDecl.length; k < kk; k++) {
-        var directiveDecl = elementDirectivesDecl[k],
-            Directive = directiveDecl.Directive,
-            childNodes,
-            $transclude = Directive.$transclude,
-            nodeId = null,
-            templates,
-            transcludedElementDirectivesDecl = null;
+      for(var k = 0, kk = nodeDirectiveInfos.length; k < kk; k++) {
+        /** @type {angular.core.DirectiveInfo} */
+        var nodeDirectiveInfo = nodeDirectiveInfos[k];
+        /** @type {angular.core.DirectiveType} */
+        var nodeDirectiveType = nodeDirectiveInfo.DirectiveType;
+        /** @type {Array.<angular.core.DirectiveInfo>} */
+        var transcludedDirectiveInfos = null;
+        /** @type {angular.core.NodeList} */
+        var childNodes;
+        /** @type {?string} */
+        var nodeId = null;
 
-        if ($transclude) {
-          var parent = node.parentNode,
-              ownerDocument = node.ownerDocument;
+        if (nodeDirectiveType.$transclude) {
+          /** @type {Node} */
+          var parent = node.parentNode;
+          /** @type {Document} */
+          var ownerDocument = node.ownerDocument;
 
           compileChildren = false;
 
-          if (directiveDecl.pseudoElement) {
+          if (nodeDirectiveInfo.pseudoElement) {
             // We have to point to the anchor element
             nodeId = markNode(node, i);
 
             // we have to remove the pseudo children.
-            childNodes = removeNodes(parent, directiveDecl.childNodes);
+            childNodes = removeNodes(parent, nodeDirectiveInfo.childNodes);
             ii -= childNodes.length;
-          } else if ($transclude == '.') {
+          } else if (nodeDirectiveType.$transclude == '.') {
             // We point to the transcluded element, but it will get replaced with pseudoelement.
             childNodes = [node];
             // create a bogus element
-            var pseudoStart = ownerDocument.createComment('[' + directiveDecl.name +
-                (directiveDecl.value ? '=' + directiveDecl.value : directiveDecl.value) + ']');
-            var pseudoEnd = ownerDocument.createComment('[/' + directiveDecl.name + ']');
+            var pseudoStart = ownerDocument.createComment('[' + nodeDirectiveInfo.name +
+                (nodeDirectiveInfo.value ? '=' + nodeDirectiveInfo.value : nodeDirectiveInfo.value) + ']');
+            var pseudoEnd = ownerDocument.createComment('[/' + nodeDirectiveInfo.name + ']');
 
             if (parent) {
               // if we have a parent then replace current node with pseudo nodes
               parent.insertBefore(pseudoStart, node);
-              parent.replaceChild(pseudoEnd, node);
+              if (blockCache) {
+                blockCache.push(new angular.core.BlockCache([
+
+                ]));
+              } else {
+                parent.replaceChild(pseudoEnd, node);
+              }
             } else {
               // we have no parent, which means we are the root of a template.
               // we need to update the template which was feed to us.
@@ -124,9 +110,9 @@ angular.core.Compile.factory = function($blockTypeFactory, $directiveInjector) {
             }
             nodeId = markNode(pseudoStart, 0);
             i++, ii++; // compensate for new bogus ending element;
-            transcludedElementDirectivesDecl = [ elementDirectivesDecl.slice(k + 1) ];
+            transcludedDirectiveInfos = nodeDirectiveInfos.slice(k + 1);
           } else {
-            var anchor = ownerDocument.createComment('Anchor:' + directiveDecl.name);
+            var anchor = ownerDocument.createComment('Anchor:' + nodeDirectiveInfo.name);
             // clean transclusion content.
             childNodes = removeNodes(node, node.childNodes);
             node.appendChild(anchor);
@@ -139,18 +125,73 @@ angular.core.Compile.factory = function($blockTypeFactory, $directiveInjector) {
         } else {
           nodeId = markNode(node, i);
         }
-        templates = $transclude &&
-            compileTransclusions($transclude, childNodes || node.childNodes,
-                transcludedElementDirectivesDecl);
-        blockDirectives.push([nodeId, [Directive, directiveDecl.value, templates]]);
+        /** @type {Object.<angular.core.BlockType>} */
+        var templates = /** @type {angular.core.BlockType} */ (nodeDirectiveType.$transclude &&
+            compileTransclusions(nodeDirectiveType.$transclude, childNodes || node.childNodes,
+                transcludedDirectiveInfos));
+        VAR(templates).is(OBJECT(angular.core.BlockType), undefined);
+        //TODO (misko): this is wrong. it needs to be outside this loop. Inside
+        // this loop it will cause multiple directives on the same element to have multiple
+        // seloctors, and will force the selction process to be run too many times.
+        // making it slow.
+        nodeDirectiveDefs.push(
+            new angular.core.NodeDirectiveDef(nodeId, [
+              new angular.core.DirectiveDef(nodeDirectiveType, nodeDirectiveInfo.value, templates)
+            ]));
       }
 
 
       if(compileChildren) {
-        walkDOM(node.childNodes, blockDirectives);
+        walkDOM(node.childNodes, nodeDirectiveDefs);
       }
     }
   }
+
+  /**
+   * @param {Node} node
+   * @return {Array.<angular.core.DirectiveInfo>}
+   */
+  function extractDirectiveInfos(node) {
+    /** @type Array.<angular.core.DirectiveInfo> */
+    var directiveInfos = selector(node);
+
+    // Resolve the Directive Controllers
+    for(var j = 0, jj = directiveInfos.length; j < jj; j++) {
+      /** @type {angular.core.DirectiveInfo} */
+      var directiveInfo = directiveInfos[j];
+      /** @type {angular.core.DirectiveType} */
+      var DirectiveType  = $directiveInjector.get(directiveInfo.selector);
+
+      if (DirectiveType.$generate) {
+        var generatedDirectives = DirectiveType.$generate(directiveInfo.value);
+        Array.isArray(Array);
+
+        for (var k = 0, kk = generatedDirectives.length; k < kk; k++) {
+          var generatedSelector = generatedDirectives[k][0];
+          var generatedValue = generatedDirectives[k][1];
+          /** @type {angular.core.DirectiveType} */
+          var generatedDirectiveType = $directiveInjector.get(generatedSelector);
+          /** @type {angular.core.DirectiveInfo} */
+          var generatedDirectiveInfo = {
+            selector: generatedSelector,
+            element: node,
+            pseudoElement: false,
+            name: generatedDirectiveType.$name,
+            value: generatedValue,
+            childNodes: /** @type {angular.core.NodeList} */(node.childNodes),
+            DirectiveType: null
+          };
+
+          directiveInfos.push(generatedDirectiveInfo);
+        }
+        jj = directiveInfos.length;
+      }
+
+      directiveInfo.DirectiveType = DirectiveType;
+    }
+    return directiveInfos
+  }
+
 
   /**
    * @param {angular.core.DirectiveInfo} a
@@ -158,50 +199,65 @@ angular.core.Compile.factory = function($blockTypeFactory, $directiveInjector) {
    * @return {number}
    */
   function priorityComparator(a, b) {
-    var aPriority = a.Directive.$priority || 0,
-        bPriority = b.Directive.$priority || 0;
+    var aPriority = a.DirectiveType.$priority || 0,
+        bPriority = b.DirectiveType.$priority || 0;
 
-    return aPriority == bPriority ? 0 : (aPriority < bPriority ? 1 : -1);
+    return bPriority - aPriority;
   }
 
 
   /**
-   * @param selector
-   * @param childNodes
-   * @param {Array.<angular.core.ElementDirectivesDecl>} elementDirectivesDecls
-   * @return {*}
+   * @param {string} selector
+   * @param {angular.core.NodeList} childNodes
+   * @param {Array.<angular.core.DirectiveInfo>} userExistingDirectiveInfos
+   * @return {Object.<angular.core.BlockType>}
    */
-  function compileTransclusions(selector, childNodes, elementDirectivesDecls) {
+  function compileTransclusions(selector, childNodes, userExistingDirectiveInfos) {
     if (selector == '.') {
+      /** @type Array.<angular.core.NodeDirectiveDef> */
       var directives = [];
 
-      walkDOM(childNodes, directives, elementDirectivesDecls);
-      return $blockTypeFactory(childNodes, directives);
+      walkDOM(childNodes, directives, null, userExistingDirectiveInfos);
+      return {'': $blockTypeFactory(childNodes, directives)};
     } else {
-      var childSelector = angular.core.selector(selector.split(','), '>'),
-          templates = {};
+      /** @type {angular.core.SelectorFn} */
+      var childSelector = angular.core.selector(selector.split(','), '>');
+      /** @type {Object.<angular.core.BlockType>} */
+      var blockTypes = {};
 
       for (var i = 0, ii = childNodes.length; i < ii; i++) {
-        var node = childNodes[i],
-            directiveInfos = childSelector(node);
+        /** @type {Node} */
+        var node = childNodes[i];
+        /** @type {Array.<angular.core.DirectiveInfo>} */
+        var directiveInfos = childSelector(node);
 
         if (directiveInfos.length) {
-          var template = compile([node]);
+          /** @type {angular.core.BlockType} */
+          var BlockType = compile([node]);
 
           for (var j = 0, jj = directiveInfos.length; j < jj; j++) {
+            /** @type {angular.core.DirectiveInfo} */
             var directiveInfo = directiveInfos[j];
 
-            templates[directiveInfo.name + '=' + directiveInfo.value] = template;
+            blockTypes[directiveInfo.name + '=' + directiveInfo.value] = BlockType;
           }
         }
       }
-      return templates;
+      return blockTypes;
     }
   }
 
+  /**
+   *
+   * @param {Node} parent
+   * @param {angular.core.NodeList} childNodes
+   * @return {angular.core.NodeList}
+   */
   function removeNodes(parent, childNodes) {
-    var removed = [],
-        child;
+    /** @type {angular.core.NodeList} */
+    var removed = [];
+    /** @type {Node} */
+    var child;
 
     for(var i = childNodes.length - 1; i >= 0; i--) {
       child = childNodes[i];
@@ -216,20 +272,25 @@ angular.core.Compile.factory = function($blockTypeFactory, $directiveInjector) {
    *
    * @param {Node} node
    * @param {number=} index
+   * @return {string}
    */
   function markNode(node, index) {
-    var parentNode,
-        className,
-        match,
-        id;
+    /** @type {Node} */
+    var parentNode;
+    /** @type {string} */
+    var className;
+    /** @type {Array.<string>} */
+    var match;
+    /** @type {string} */
+    var id;
 
     if (node.nodeType == 1 /* Element */) {
       // we are an element, just mark it.
 
-      var element = (/** @type Element */node);
+      var element = /** @type Element */(node);
 
       className = element.className;
-      match = className && className.match(ID_REGEXP);
+      match = /** @type {Array.<string>} */(className && className.match(ID_REGEXP));
       if (match) {
         id = match[1];
       } else {
@@ -248,8 +309,17 @@ angular.core.Compile.factory = function($blockTypeFactory, $directiveInjector) {
   }
   var ID_REGEXP = /\b(__ng_[\d\w]+)\b/;
 
-  return function(element) {
-    return compile(isString(element) ? angular.core.dom.htmlToDOM(element) : element);
+  /**
+   * @param {angular.core.NodeList|string} element
+   * @param {Array.<angular.core.BlockCache>=} blockCache
+   * @return {angular.core.BlockType}
+   */
+  return function(element, blockCache) {
+    return compile(
+        isString(element)
+          ? angular.core.dom.htmlToDOM(/** @type {string} */(element))
+          : /** @type {angular.core.NodeList} */(element),
+        blockCache);
   };
 };
 

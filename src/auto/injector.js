@@ -9,10 +9,16 @@ goog.require('angular.apis');
 goog.require('angular.HashMap');
 
 
+/** @typedef {function(string, angular.Injector):*} */
+angular.LocalFactoryFn;
+
 /**
  * @interface
  */
-angular.Injector = function() {};
+angular.Injector = function angular_Injector() {};
+angular.Injector.__ASSERT__ = function(injector) {
+  return injector && injector.constructor.name.indexOf('Injector') > -1;
+};
 
 angular.Injector.notImplemented = function() {
   throw Error('NOT IMPLEMENTED');
@@ -37,8 +43,8 @@ angular.Injector.prototype.get = function(name, contextFn) {};
 angular.Injector.prototype.invoke = function(injectableFn, self) {};
 
 /**
- * @param {Object} locals .
- * @param {function(string, angular.Injector):*} factoryFn .
+ * @param {Object.<*>} locals .
+ * @param {angular.LocalFactoryFn} factoryFn .
  * @return {angular.Injector} return value of the invoked method.
  */
 angular.Injector.prototype.locals = function(locals, factoryFn) {};
@@ -222,7 +228,7 @@ function createInjector(modulesToLoad) {
     this.$$instances['$injector'] = [this];
   }
 
-  Injector.prototype = {
+  extend(Injector.prototype, /** @lends {Injector.prototype} */ ({
     /**
      * @ngdoc method
      * @name AUTO.$injector#get
@@ -283,7 +289,7 @@ function createInjector(modulesToLoad) {
       var $inject = annotate(fn),
           i = 0, ii = $inject.length,
           nakedFn = fn.$inject == $inject ? fn : fn[ii],
-          args = [fn];
+          args = [nakedFn];
 
       for(; i < ii; i++) {
         args.push(this.get($inject[i], nakedFn));
@@ -676,7 +682,7 @@ function createInjector(modulesToLoad) {
     limit: function(prefix) {
       return new LimitInjector(this, prefix);
     }
-  };
+  }));
 
   /**
    * @constructor

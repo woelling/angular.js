@@ -4,7 +4,7 @@ goog.provide('angular.core.ElementWrapper');
 goog.provide('angular.core.Directive');
 
 /**
- * This interface is used by angular.core.Block as well as angular.core.Anchor. This is so that we can treat a anchor
+ * This interface is used by angular.core.Block as well as angular.core.BlockList. This is so that we can treat a anchor
  * as something which we can add blocks after.
  *
  * @interface
@@ -18,6 +18,16 @@ angular.core.ElementWrapper = function() {};
  * @type {angular.core.NodeList}
  */
 angular.core.ElementWrapper.prototype.elements;
+
+/**
+ * @type {angular.core.ElementWrapper}
+ */
+angular.core.ElementWrapper.prototype.next;
+
+/**
+ * @type {angular.core.ElementWrapper}
+ */
+angular.core.ElementWrapper.prototype.previous;
 
 
 

@@ -5,7 +5,9 @@ goog.provide('angular.core.Scope');
 /**
  * @interface
  */
-angular.core.Scope = function(){};
+angular.core.Scope = TYPE('angular.core.Scope', function(scope) {
+  return scope && scope.constructor.name == 'Scope';
+});
 
 /**
  * @template T

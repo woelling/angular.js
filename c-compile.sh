@@ -6,6 +6,7 @@ FILES=`./lib/closure-compiler/closurebuilder.py --root=src/ --root=lib/closure-c
 if [ -z "$FILES" ]; then
   exit 1
 fi
+FILES="src/runTimeTypes.js src/assert.js $FILES"
 FLAT_FILES=`echo $FILES`
 
 echo "files = [JASMINE, JASMINE_ADAPTER].
@@ -14,7 +15,8 @@ echo "files = [JASMINE, JASMINE_ADAPTER].
     'lib/jquery/jquery.js',
     'src/ngMock/angular-mocks.js',
     'test/core/**/*.js',
-    'test/auto/**/*.js'
+    'test/auto/**/*.js',
+    'test/runTimeTypesSpec.js'
   ]);" > testacular.conf.js
 
 FLAGS="--output_wrapper (function(){%output%})() \

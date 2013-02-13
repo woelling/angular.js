@@ -5,11 +5,18 @@ goog.provide('angular.core.dom.extractTemplate');
 goog.provide('angular.core.dom.htmlToDOM');
 goog.provide('angular.core.dom.select');
 
+/**
+ *
+ * @param {angular.core.NodeList} elements
+ * @return {angular.core.NodeList}
+ */
 angular.core.dom.clone = function (elements) {
-  var cloneElements = [],
-      i = 0, ii = elements.length;
+  VERIFY(arguments,
+    ARG('elements').is(angular.core.NodeList));
+  /** @type {angular.core.NodeList} */
+  var cloneElements = [];
+  var i = 0, ii = elements.length;
 
-  ASSERT(ii);
 
   for(; i < ii; i++) {
     cloneElements[i] = elements[i].cloneNode(true);
@@ -17,52 +24,79 @@ angular.core.dom.clone = function (elements) {
   return cloneElements;
 }
 
-angular.core.dom.extractTemplate = function (rootElement, selector, directiveDefs) {
-  if (typeof selector == 'string') {
-    var elements = angular.core.dom.clone(angular.core.dom.select(rootElement, selector));
+/**
+ * @param {angular.core.NodeList} templateElement
+ * @param {Array.<angular.core.NodeDirectiveDef>} nodeDirectiveDefs
+ * @return {angular.core.NodeList}
+ */
+angular.core.dom.extractTemplate = function (templateElement, nodeDirectiveDefs) {
+  VERIFY(arguments,
+    ARG('templateElement').is(angular.core.NodeList),
+    ARG('nodeDirectiveDefs').is(ARRAY(angular.core.NodeDirectiveDef)));
 
-    // remove the hole contents
-    for(var i = 0, ii = directiveDefs.length; i < ii; i++) {
-      var elementDirectiveDefs = directiveDefs[i];
+  /** @type {angular.core.NodeList} */
+  var clonedElements = angular.core.dom.clone(templateElement);
 
-      if (elementDirectiveDefs[1].length == 3 /* is component */) {
-        var holeElements = angular.core.dom.select(elements, elementDirectiveDefs[0]),
-            parentNode = holeElements[0].parentNode;
+  // remove the hole contents
+  for(var i = 0, ii = nodeDirectiveDefs.length; i < ii; i++) {
+    /** @type {angular.core.NodeDirectiveDef} */
+    var nodeDirectiveDef = nodeDirectiveDefs[i];
+
+    VAR(nodeDirectiveDef).is(angular.core.NodeDirectiveDef);
+    for (var directiveDefs = nodeDirectiveDef.directiveDefs,
+         j = 0, jj = directiveDefs.length; j < jj; j++) {
+      /** @type {angular.core.DirectiveDef} */
+      var directiveDef = directiveDefs[j];
+
+      VAR(directiveDef).is(angular.core.DirectiveDef);
+      if (directiveDef.isComponent()) {
+        /** @type {angular.core.NodeList} */
+        var holeElements = angular.core.dom.select(clonedElements, nodeDirectiveDef.selector);
+        /** @type {Element} */
+        var parentNode = holeElements[0].parentNode;
 
         // assume first element is anchor and remove the rest
         for(var j = 1, jj = holeElements.length; j < jj; j++) {
           parentNode.removeChild(holeElements[j]);
         }
         // strip span from hole selectors
-        elementDirectiveDefs[0] = elementDirectiveDefs[0].replace(/\+\d+$/, '');
+        nodeDirectiveDef.stripSpan();
       }
     }
-
-    return elements;
-  } else {
-    // assume that it is array of elements
-    return selector;
   }
+
+  return clonedElements;
 }
 
 
-
-
+/**
+ * @param {angular.core.Html} html
+ * @return {angular.core.NodeList}
+ */
 angular.core.dom.htmlToDOM = function(html) {
-  var nodeMatch = html.match(angular.core.dom.htmlToDOM.NODE_NAME_REGEXP),
-      nodeName = nodeMatch && nodeMatch[1],
-      wrap = angular.core.dom.htmlToDOM.PARENT_NODE[lowercase(nodeName)] ||
-          angular.core.dom.htmlToDOM.NO_WRAP,
-      depth = wrap[0],
-      pre = wrap[1],
-      post = wrap[2],
-      div = document.createElement('div'),
-      nodes = [],
-      childNodes;
+  /** @type {Array.<string>} */
+  var nodeMatch = html.match(angular.core.dom.htmlToDOM.NODE_NAME_REGEXP_);
+  /** @type {?string} */
+  var nodeName = nodeMatch && nodeMatch[1];
+  /** @type {Array} */
+  var wrap = angular.core.dom.htmlToDOM.PARENT_NODE_[lowercase(nodeName)] ||
+          angular.core.dom.htmlToDOM.NO_WRAPS_;
+  /** @type {number} */
+  var depth = wrap[0];
+  /** @type {string} */
+  var pre = wrap[1];
+  /** @type {string} */
+  var post = wrap[2];
+  /** @type {Node} */
+  var div = document.createElement('div');
+  /** @type {angular.core.NodeList} */
+  var nodes = [];
+  /** @type {angular.core.NodeList} */
+  var childNodes;
 
   // Read about the NoScope elements here:
   // http://msdn.microsoft.com/en-us/library/ms533897(VS.85).aspx
-  div.innerHTML = angular.core.dom.htmlToDOM.IE_NO_SCOPE_WORKAROUND + pre  + html + post;
+  div.innerHTML = angular.core.dom.htmlToDOM.IE_NO_SCOPE_WORKAROUND_ + pre  + html + post;
   div.removeChild(div.firstChild); // remove the superfluous div
 
   childNodes = div.childNodes;
@@ -78,32 +112,45 @@ angular.core.dom.htmlToDOM = function(html) {
 }
 // Read about the NoScope elements here:
 // http://msdn.microsoft.com/en-us/library/ms533897(VS.85).aspx
-angular.core.dom.htmlToDOM.IE_NO_SCOPE_WORKAROUND = '<div>&#160;</div>';
-angular.core.dom.htmlToDOM.NODE_NAME_REGEXP = /\<([\w\d\-\_\:]+)/;
-angular.core.dom.htmlToDOM.NO_WRAP    = [ 0, "",                   "" ];
-angular.core.dom.htmlToDOM.TABLE_WRAP = [ 1, "<table>",            "</table>" ];
-angular.core.dom.htmlToDOM.TBODY_WRAP = [ 2, "<table><tbody>",     "</tbody></table>" ];
-angular.core.dom.htmlToDOM.TR_WRAP    = [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ];
-angular.core.dom.htmlToDOM.PARENT_NODE = {
+/** @type {string} @private */
+angular.core.dom.htmlToDOM.IE_NO_SCOPE_WORKAROUND_ = '<div>&#160;</div>';
+/** @type {RegExp} @private */
+angular.core.dom.htmlToDOM.NODE_NAME_REGEXP_ = /\<([\w\d\-\_\:]+)/;
+/** @type {Array} @private */
+angular.core.dom.htmlToDOM.NO_WRAPS_    = [ 0, "",                   "" ];
+/** @type {Array} @private */
+angular.core.dom.htmlToDOM.TABLE_WRAP_  = [ 1, "<table>",            "</table>" ];
+/** @type {Array} @private */
+angular.core.dom.htmlToDOM.TBODY_WRAP_  = [ 2, "<table><tbody>",     "</tbody></table>" ];
+/** @type {Array} @private */
+angular.core.dom.htmlToDOM.TR_WRAP_     = [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ];
+/** @type {Object.<Array>} @private */
+angular.core.dom.htmlToDOM.PARENT_NODE_ = {
   'option':      [ 1, "<select multiple='multiple'>", "</select>" ],
   'legend':      [ 1, "<fieldset>",                   "</fieldset>" ],
-  'thead':       angular.core.dom.htmlToDOM.TABLE_WRAP,
-  'tbody':       angular.core.dom.htmlToDOM.TABLE_WRAP,
-  'tfoot':       angular.core.dom.htmlToDOM.TABLE_WRAP,
-  'colgroup':    angular.core.dom.htmlToDOM.TABLE_WRAP,
-  'tr':          angular.core.dom.htmlToDOM.TBODY_WRAP,
-  'th':          angular.core.dom.htmlToDOM.TR_WRAP,
-  'td':          angular.core.dom.htmlToDOM.TR_WRAP,
+  'thead':       angular.core.dom.htmlToDOM.TABLE_WRAP_,
+  'tbody':       angular.core.dom.htmlToDOM.TABLE_WRAP_,
+  'tfoot':       angular.core.dom.htmlToDOM.TABLE_WRAP_,
+  'colgroup':    angular.core.dom.htmlToDOM.TABLE_WRAP_,
+  'tr':          angular.core.dom.htmlToDOM.TBODY_WRAP_,
+  'th':          angular.core.dom.htmlToDOM.TR_WRAP_,
+  'td':          angular.core.dom.htmlToDOM.TR_WRAP_,
   'col':         [ 2, "<table><colgroup>",            "</colgroup></table>" ],
   'area':        [ 1, "<map>", "</map>" ]
 };
 
-
+/**
+ * @param {angular.core.NodeList} roots
+ * @param {angular.core.Selector} selector
+ * @return {angular.core.NodeList}
+ */
 angular.core.dom.select = function (roots, selector) {
-  assertArg(roots);
-  assertArg(selector);
+  VERIFY(arguments,
+    ARG('roots').is(angular.core.NodeList),
+    ARG('selector').is(angular.core.Selector));
 
-  var match = angular.core.dom.select.SELECTOR_REGEX.exec(selector);
+  /** @type {Array.<string>|null} */
+  var match = angular.core.dom.select.SELECTOR_REGEX_.exec(selector);
 
   if (!match) {
     if (selector.charAt(0) == '<') {
@@ -113,10 +160,14 @@ angular.core.dom.select = function (roots, selector) {
     }
   }
 
-  var foundElement,
-      offset = match[3] ? match[4] * 1 : false,
-      span = match[6] * 1 || 0,
-      elements = [];
+  /** @type {Element} */
+  var foundElement;
+  /** @type {number|boolean} */
+  var offset = match[3] ? match[4] * 1 : false;
+  /** @type {number} */
+  var span = match[6] * 1 || 0;
+  /** @type {angular.core.NodeList} */
+  var elements = [];
 
   if (!match[1] && !match[2] && match[4]) {
     // Select by offset
@@ -175,17 +226,32 @@ angular.core.dom.select = function (roots, selector) {
  * 1
  * 1+2
  */
-angular.core.dom.select.SELECTOR_REGEX = /^(\.([^+>]*))?(\>?(\d+))?(\+(\d+))?$/;
+/** @type {RegExp} @private */
+angular.core.dom.select.SELECTOR_REGEX_ = /^(\.([^+>]*))?(\>?(\d+))?(\+(\d+))?$/;
 
+/**
+ * @param {string} selector
+ * @param {angular.core.NodeList} roots
+ */
 angular.core.dom.select.assert = function(selector, roots) {
+  VERIFY(arguments,
+    ARG('selector').is(angular.core.Selector),
+    ARG('roots').is(angular.core.NodeList));
+  ASSERT(roots.length > 0);
+
   throw new Error('Can not select: ' + selector + ' ' + angular.core.dom.startingTag(roots[0]));
 }
 
 /**
+ * @param {Node} element
  * @returns {string} Returns the string representation of the element.
  */
 angular.core.dom.startingTag = function (element) {
+  VERIFY(arguments,
+    ARG('element').is(Node));
+
   var html = element.outerHTML;
+
   return html && html.
       match(/^(<[^>]+>)/)[1].
       replace(/^<([\w\-]+)/, function(match, nodeName) { return '<' + lowercase(nodeName); });

@@ -10,8 +10,8 @@ goog.provide('angular');
  * @function
  *
  * @description Converts the specified string to lowercase.
- * @param {string} string String to be converted to lowercase.
- * @returns {string} Lowercased string.
+ * @param {?string} string String to be converted to lowercase.
+ * @returns {string|null} Lowercased string.
  */
 var lowercase = function(string) {
   return isString(string) ? string.toLowerCase() : string;
@@ -30,8 +30,8 @@ var manualLowercase = function(s) {
  * @function
  *
  * @description Converts the specified string to uppercase.
- * @param {string} string String to be converted to uppercase.
- * @returns {string} Uppercased string.
+ * @param {?string} string String to be converted to uppercase.
+ * @returns {string|null} Uppercased string.
  */
 var uppercase = function(string) {
   return isString(string) ? string.toUpperCase() : string;
@@ -70,6 +70,7 @@ var msie              =
  * @ngdoc function
  * @name angular.forEach
  * @function
+ * @template T
  *
  * @description
  * Invokes the `iterator` function once for each item in `obj` collection, which can be either an
@@ -88,7 +89,7 @@ var msie              =
      expect(log).toEqual(['name: misko', 'gender:male']);
    </pre>
  *
- * @param {(Object|Array)} obj Object to iterate over.
+ * @param {(Object.<T>|Array.<T>)} obj Object to iterate over.
  * @param {Function} iterator Iterator function.
  * @param {Object=} context Object to become context (`this`) for the iterator function.
  * @returns {(Object|Array)} Reference to `obj`.
@@ -667,12 +668,12 @@ function sliceArgs(args, startIndex) {
  * `fn`). You can supply optional `args` that are are prebound to the function. This feature is also
  * known as [function currying](http://en.wikipedia.org/wiki/Currying).
  *
- * @param {Object} self Context which `fn` should be evaluated in.
- * @param {function()} fn Function to be bound.
- * @param {...*} args Optional arguments to be prebound to the `fn` function call.
- * @returns {function()} Function that wraps the `fn` with all the specified bindings.
+ * @param {Object|null|undefined} self Context which `fn` should be evaluated in.
+ * @param {Function} fn Function to be bound.
+ * @param {...*} var_args Optional arguments to be prebound to the `fn` function call.
+ * @returns {Function} Function that wraps the `fn` with all the specified bindings.
  */
-function bind(self, fn, args) {
+function bind(self, fn, var_args) {
   var curryArgs = arguments.length > 2 ? sliceArgs(arguments, 2) : [];
   if (isFunction(fn) && !(fn instanceof RegExp)) {
     return curryArgs.length
@@ -858,15 +859,6 @@ function assertArgFn(arg, name, acceptArrayAnnotation) {
       (arg && typeof arg == 'object' ? arg.constructor.name || 'Object' : typeof arg));
   return arg;
 }
-
-
-function ASSERT(truth) {
-  if (!truth) {
-    //debugger;
-    throw Error('Expected truthy, but was: ' + truth);
-  }
-}
-
 
 /**
  * @template T

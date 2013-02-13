@@ -5,7 +5,7 @@ goog.provide('angular.core.module');
 goog.require('angular');
 goog.require('angular.module');
 
-goog.require('angular.core.Anchor');
+goog.require('angular.core.BlockList');
 goog.require('angular.core.Block');
 goog.require('angular.core.BlockType.factory');
 goog.require('angular.core.Compile.factory');
@@ -23,7 +23,8 @@ goog.require('angular.core.directive.AttrInterpolation');
 angular.core.module = angular.module('core', []).
     value({
       '$filter': noop,
-      '$sniffer': {}
+      '$sniffer': {},
+      '$emptyInjector': createInjector()
     }).
     factory('$directiveInjector', ['$injector', function($injector) {
       return $injector.limit('directive:');
@@ -38,7 +39,7 @@ angular.core.module = angular.module('core', []).
     provider('$rootScope', $RootScopeProvider).
     provider('$parse', $ParseProvider).
     provider('$interpolate', $InterpolateProvider).
-    curryTypeFactory('$anchorFactory', angular.core.Anchor).
+    curryTypeFactory('$blockListFactory', angular.core.BlockList).
     curryTypeFactory('$blockFactory', angular.core.Block).
     curry('$blockTypeFactory', angular.core.BlockType.factory).
     directive('[bind]', angular.core.directive.Bind).

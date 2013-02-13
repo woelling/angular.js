@@ -119,14 +119,14 @@ describe('dte.compiler', function() {
             if (block) {
               block.remove();
             }
-            block = $anchor.newBlock('switch-when=' + value) ||
-                $anchor.newBlock('switch-default=');
-            if (block) {
-              block.insertAfter($anchor);
-              block.attach(scope.$new());
-            } else {
-              dump("no block found")
+            var type = 'switch-when=' + value;
+
+            if (!$anchor.blockTypes.hasOwnProperty(type)) {
+              type = 'switch-default='
             }
+            block = $anchor.newBlock(type);
+            block.insertAfter($anchor);
+            block.attach(scope.$new());
           });
         }
       }
@@ -232,7 +232,10 @@ describe('dte.compiler', function() {
     }));
   });
 
+
   describe('directive generation', function() {
+    var Bind, Repeat;
+
     beforeEach(module(function($provide) {
       function Generate() {};
 
@@ -248,14 +251,40 @@ describe('dte.compiler', function() {
 
     it('should generate directive from a directive', inject(function() {
       var element = $('<ul><li generate="abc"></li></ul>');
-      var template = $compile(element);
-      var block = template(element);
+      var blockType = $compile(element);
+      var block = blockType(element);
 
       block.attach($rootScope);
       $rootScope.names = ['james;', 'misko;'];
       $rootScope.$apply();
 
       expect(element.text()).toEqual('james;misko;');
+    }));
+  });
+
+
+  describe('reuse DOM instances', function() {
+    xit('should reuse repeat instances', inject(function() {
+      var element = $('<ul><li repeat="i in items" instance="1" bind="i">first</li><li instance="2">second</li></ul>');
+      var blockCache = [];
+      var ulBlockType = $compile(element, blockCache);
+
+      if (false) {
+        var liBlockType = $compile('<li bind="i"></li>');
+        blockCache.push(new angular.core.BlockCache([
+          liBlockType(element.find('[instance=1]')),
+          liBlockType(element.find('[instance=2]'))
+        ]))
+      }
+
+      var block = ulBlockType(element, blockCache);
+
+      block.attach($rootScope);
+      $rootScope.items = ['A', 'B'];
+      $rootScope.$apply();
+
+      expect(element.text()).toEqual('AB');
+      expect(element.html()).toEqual('<li repeat="i in items" instance="1" bind="i">A</li><li instance="2">B</li>');
     }));
   });
 });

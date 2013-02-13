@@ -3,33 +3,45 @@
 goog.provide('angular.core.Accessor');
 goog.provide('angular.core.AccessorFactory');
 goog.provide('angular.core.AttrAccessor');
-goog.provide('angular.core.DirectiveInfo');
 goog.provide('angular.core.DirectiveType');
-goog.provide('angular.core.DirectiveDef')
-goog.provide('angular.core.NodeDirectiveDef')
 goog.provide('angular.core.NodeList');
 
 
 /**
- * @typedef {{
- *   $priority: number,
- *   $transclude: string
- * }}
+ * @interface
  */
-angular.core.DirectiveType;
+angular.core.DirectiveType = function() {};
 
 /**
- * @typedef {{
- *   Directive: angular.core.DirectiveType,
- *   selector: string,
- *   element: Node,
- *   pseudoElement: boolean,
- *   name: string,
- *   value: string,
- *   childNodes: Array.<Node>
- * }}
+ * @type {number}
  */
-angular.core.DirectiveInfo;
+angular.core.DirectiveType.prototype.$priority;
+
+/**
+ * @type {string}
+ */
+angular.core.DirectiveType.prototype.$transclude;
+
+
+/**
+ * @type {string}
+ */
+angular.core.DirectiveType.prototype.$name;
+
+/**
+ * This is the actual function name
+ * @type {string}
+ */
+angular.core.DirectiveType.prototype.name;
+
+
+/**
+ * @param {string} value
+ * @return {Array.<angular.core.DirectiveDef>}
+ */
+angular.core.DirectiveType.prototype.$generate = function(value) {};
+
+
 
 
 
@@ -55,7 +67,9 @@ angular.core.ElementDirectivesDecl;
 /**
  * @typedef {Array.<Node>|NodeList}
  */
-angular.core.NodeList;
+angular.core.NodeList = TYPE('angular.core.NodeList', function(value) {
+  return value && typeof value.length == 'number';
+});
 
 /**
  * @typedef {
@@ -64,16 +78,6 @@ angular.core.NodeList;
  */
 angular.core.AttrAccessor;
 
-
-/**
- * @typedef {Array.<Function|string>}
- */
-angular.core.NodeDirectiveDef;
-
-/**
- * @typedef {Array.<string|angular.core.NodeDirectiveDef>}
- */
-angular.core.DirectiveDef;
 
 
 

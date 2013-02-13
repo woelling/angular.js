@@ -1,100 +1,269 @@
 'use strict';
 
 goog.provide('angular.core.Block');
-goog.provide('angular.core.BlockFactory');
+goog.provide('angular.core.BlockCache');
+goog.provide('angular.core.DirectiveDef');
+goog.provide('angular.core.NodeDirectiveDef');
+goog.provide('angular.core.BlockInstance');
 
 goog.require('angular.injector');
 goog.require('angular.core.dom.select');
 goog.require('angular.core.ExceptionHandler');
 
 
+
 /**
- * @typedef {function(*, *, *):angular.core.Block}
+ * @param {angular.core.DirectiveType} DirectiveType
+ * @param {string=} value
+ * @param {Object.<angular.core.BlockType>=} blockTypes
+ * @constructor
  */
-angular.core.BlockFactory;
+angular.core.DirectiveDef = function DirectiveDef(DirectiveType, value, blockTypes) {
+  VERIFY(arguments,
+    ARG('DirectiveType').is(Function),
+    ARG('value').is(String, undefined),
+    ARG('blockTypes').is(OBJECT(angular.core.BlockType), undefined));
+
+  /** @type {angular.core.DirectiveType} */
+  this.DirectiveType = DirectiveType;
+  /** @type {string|undefined} */
+  this.value = value;
+  /** @type {Object.<angular.core.BlockType>} */
+  this.blockTypes = /** @type {Object.<angular.core.BlockType>} */(blockTypes);
+}
+
+/**
+ * @return {boolean}
+ */
+angular.core.DirectiveDef.prototype.isComponent = function() {
+  return !!this.blockTypes;
+}
+
+
+
+
+
+/**
+ * @param {string} selector
+ * @param {Array.<angular.core.DirectiveDef>} directiveDefs
+ * @constructor
+ */
+angular.core.NodeDirectiveDef = function NodeDirectiveDef(selector, directiveDefs) {
+  VERIFY(arguments,
+    ARG('selector').is(String),
+    ARG('directiveDefs').is(ARRAY(angular.core.DirectiveDef)));
+
+  /** @type {string} */
+  this.selector = selector;
+  /** @type {Array.<angular.core.DirectiveDef>} */
+  this.directiveDefs = directiveDefs
+}
+/** @type {RegExp} @private */
+angular.core.NodeDirectiveDef.STRIP_SPAN_ = /\+\d+$/;
+
+angular.core.NodeDirectiveDef.prototype.stripSpan = function() {
+  this.selector = this.selector.replace(angular.core.NodeDirectiveDef.STRIP_SPAN_, '');
+};
+
+
+
+
+
+/**
+ * @param {Array.<angular.core.Block>=} blockInstances
+ * @constructor
+ */
+angular.core.BlockCache = function BlockCache(blockInstances) {
+  VERIFY(arguments,
+    ARG('blockInstances').is(ARRAY(angular.core.Block), undefined));
+
+  /** @type {Object.<Array.<angular.core.Block>>} */
+  this.groupCache = {};
+
+  if (!blockInstances) return;
+
+  var groupCache = this.groupCache;
+
+  for (var i = 0, ii = blockInstances.length; i < ii; i++) {
+    /** @type {angular.core.Block} */
+    var block = blockInstances[i];
+    /** @type {string} */
+    var group = block.group;
+
+    if (groupCache.hasOwnProperty(group)) {
+      groupCache[group].push(block);
+    } else {
+      groupCache[group] = [block];
+    }
+  }
+};
+
+/**
+ * @param {function(angular.core.Block)=} callback
+ */
+angular.core.BlockCache.prototype.flush = function(callback) {
+  forEach(this.groupCache,
+      /**
+       * @param {Array.<angular.core.Block>} blocks
+       */
+      function(blocks) {
+        while(blocks.length) {
+          /** @type {angular.core.Block} */
+          var block = blocks.pop();
+
+          callback && callback(block);
+        }
+      }
+  );
+};
+
+/**
+ *
+ * @param {string} type
+ * @return {angular.core.Block}
+ */
+angular.core.BlockCache.prototype.get = function(type) {
+  if (this.groupCache.hasOwnProperty(type)) {
+    /** @type {Array.<angular.core.Block>} */
+    var blocks = this.groupCache[type];
+
+    if (blocks.length) return blocks.shift();
+  }
+};
+
+
+
+
+
+/**
+ * @typedef {function(
+ *      angular.core.NodeList,
+ *      Array.<angular.core.NodeDirectiveDef>,
+ *      (Array.<angular.core.BlockCache>|undefined),
+ *      (string|undefined)
+ *   ):angular.core.Block}
+ */
+angular.core.BlockFactory = TYPE('angular.core.BlockFactory', function(value) {
+  return typeof value == 'function';
+});
+
+
 
 
 /**
  * @param {angular.core.ExceptionHandler} $exceptionHandler
- * @param {angular.core.AnchorFactory} $anchorFactory
- * @param {angular.Injector} $directiveInjector
+ * @param {angular.core.BlockListFactory} $blockListFactory
  * @param {angular.Injector} $injector
- * @param {angular.core.NodeList} elements
- * @param {Array.<angular.core.NodeDirectiveDef>} directiveDefs
- * @param {?} blocksForAnchors
+ * @param {angular.Injector} $emptyInjector
+ * @param {angular.core.NodeList} blockElement
+ * @param {Array.<angular.core.NodeDirectiveDef>} nodeDirectiveDefs
+ * @param {Array.<angular.core.BlockCache>=} blockCaches
+ * @param {string=} group
  * @constructor
+ * @implements {angular.core.ElementWrapper}
  */
-angular.core.Block = function($exceptionHandler, $anchorFactory, $directiveInjector, $injector,
-                               elements, directiveDefs, blocksForAnchors) {
+angular.core.Block = function Block($exceptionHandler, $blockListFactory, $injector, $emptyInjector,
+                                    blockElement, nodeDirectiveDefs, blockCaches, group) {
+  VERIFY(arguments,
+    ARG('$exceptionHandler').is(angular.core.ExceptionHandler),
+    ARG('$blockListFactory').is(angular.core.BlockListFactory),
+    ARG('$injector').is(angular.Injector),
+    ARG('$emptyInjector').is(angular.Injector),
+    ARG('blockElement').is(angular.core.NodeList),
+    ARG('nodeDirectiveDefs').is(ARRAY(angular.core.NodeDirectiveDef)),
+    ARG('blockCaches').is(ARRAY(angular.core.BlockCache), undefined),
+    ARG('group').is(String, undefined));
+
+  /** @type {string} */
+  this.group = group || '';
+  /** @type {angular.core.ExceptionHandler} */
   this.$exceptionHandler = $exceptionHandler;
-  this.elements = elements;
+  /** @type {angular.core.NodeList} */
+  this.elements = blockElement;
+  /** @type {angular.core.ElementWrapper} */
   this.previous = this.next = null;
 
-  ASSERT(this.elements.length);
+  VAR(blockElement).is(angular.core.NodeList);
 
-  var blockDirectives = this.directives = [],
-      block = this;
+  /** @type {Array.<angular.core.Directive>} */
+  var blockDirectives = this.directives = [];
+  /** @type {angular.core.Block} */
+  var block = this;
 
-  for(var i = 0, ii = directiveDefs.length; i < ii; i++) {
-    var elementDirectiveDefs = directiveDefs[i] || EMPTY_ARRAY,
-        elementSelector = elementDirectiveDefs[0],
-        element = angular.core.dom.select(elements, elementSelector)[0],
-        anchor,
-        templates,
-        directiveMap = {},
-        directiveList = [],
-        directiveValues = {},
-        locals = {
-          '$block': block,
-          '$element': element,
-          '$value': undefined
-        },
-        elementInjector = angular.core.Block.emptyInjector.locals(locals, function(name, elementInjector) {
-          ASSERT(name);
-          ASSERT(elementInjector);
-          var match = name.match(angular.core.Block.BLOCK_DYNAMIC_SERVICES_REGEX),
-              factory = match && angular.core.Block.BLOCK_DYNAMIC_SERVICES[match[1]],
-              previousValue;
+  // For each directive defined on the block
+  for(var i = 0, ii = nodeDirectiveDefs.length; i < ii; i++) {
+    /** @type {angular.core.NodeDirectiveDef} */
+    var nodeDirectiveDef = nodeDirectiveDefs[i];
+    /** @type {Node} */
+    var node = angular.core.dom.select(blockElement, nodeDirectiveDef.selector)[0];
+    /** @type {angular.core.BlockType} */
+    var BlockType;
+    /** @type {Object.<angular.core.DirectiveType>} */
+    var directiveTypeMap = {};
+    /** @type {Array.<string>} */
+    var directiveList = [];
+    /** @type {Object.<string|undefined>} */
+    var directiveValues = {};
+    /** @type {Object.<*>} */
+    var locals = {
+      '$block': block,
+      '$element': node,
+      '$value': undefined
+    };
+    /** @type {angular.LocalFactoryFn} */
+    var localFactoryFn = function(name, elementInjector) {
+      VERIFY(arguments,
+        ARG('name').is(String),
+        ARG('elementInjector').is(angular.Injector));
 
-          if (factory) {
-            return locals[name] = factory(match[2], block, element, $injector);
-          } else if (directiveMap.hasOwnProperty(name)) {
-            previousValue = locals['$value'];
-            try {
-              locals['$value'] = directiveValues[name];
-              return locals[name] = elementInjector.instantiate(directiveMap[name]);
-            } catch (e) {
-              $exceptionHandler(e);
-            } finally {
-              locals['$value'] = previousValue;
-            }
-          }
-        });
+      /** @type {Array.<string>} */
+      var match = name.match(angular.core.Block.DYNAMIC_SERVICES_REGEX_);
+      /** @type {angular.core.DynamicServiceFactoryFn|null} */
+      var dynamicServiceFactoryFn = match && angular.core.Block.DYNAMIC_SERVICES_[match[1]];
+      /** @type {*} */
+      var previousValue;
 
-    for(var j = 1, jj = elementDirectiveDefs.length; j < jj; j++) {
+      if (dynamicServiceFactoryFn) {
+        return locals[name] = dynamicServiceFactoryFn(match[2], block, node, $injector);
+      } else if (directiveTypeMap.hasOwnProperty(name)) {
+        previousValue = locals['$value'];
+        try {
+          locals['$value'] = directiveValues[name];
+          return locals[name] = elementInjector.instantiate(/** @type {Function} */(directiveTypeMap[name]));
+        } catch (e) {
+          $exceptionHandler(e);
+        } finally {
+          locals['$value'] = previousValue;
+        }
+      }
+    };
+    /** @type {angular.Injector} */
+    var elementInjector = $emptyInjector.locals(locals, localFactoryFn);
+
+    // For each directive defined on the element of the block
+    for(var directiveDefs = nodeDirectiveDef.directiveDefs,
+            j = 0, jj = directiveDefs.length; j < jj; j++) {
       try {
-        var directiveDef = elementDirectiveDefs[j],
-            Directive = directiveDef[0],
-            directiveValue = directiveDef[1],
-            directiveTemplate = directiveDef[2],
-            directiveName;
+        /** @type {angular.core.DirectiveDef} */
+        var directiveDef = directiveDefs[j];
+        /** @type {angular.core.DirectiveType} */
+        var DirectiveType = directiveDef.DirectiveType;
+        /** @type {string} */
+        var directiveName = DirectiveType.$name || DirectiveType.name || nextUid();
 
-        if (typeof Directive == 'string') {
-          directiveName = Directive;
-          Directive = $directiveInjector.get(directiveName);
-        } else {
-          directiveName = Directive.$name || '__' + nextUid();
+        if (directiveDef.isComponent()) {
+          /** @type {angular.core.BlockCache} */
+          var blockCache = blockCaches && blockCaches.shift() || new angular.core.BlockCache();
+
+          /** @type {angular.core.BlockList} */
+          var anchor = $blockListFactory([node], directiveDef.blockTypes, blockCache);
+
+          locals['$anchor'] = anchor;
         }
 
-        if (directiveTemplate != undefined) {
-          locals.$anchor = anchor = $anchorFactory([element], directiveTemplate);
-          templates = blocksForAnchors && blocksForAnchors[i];
-          templates && angular.core.Block.loadExistingBlocksIntoAnchor(anchor, element, templates);
-        }
-
-        directiveMap[directiveName] = Directive;
+        directiveTypeMap[directiveName] = DirectiveType;
         directiveList.push(directiveName);
-        directiveValues[directiveName] = directiveValue;
+        directiveValues[directiveName] = directiveDef.value;
       } catch(e) {
         this.$exceptionHandler(e);
       }
@@ -106,40 +275,42 @@ angular.core.Block = function($exceptionHandler, $anchorFactory, $directiveInjec
   }
 };
 
-angular.annotate.$inject(['$exceptionHandler', '$anchorFactory', '$directiveInjector', '$injector'], angular.core.Block, true);
+angular.annotate.$inject(
+    ['$exceptionHandler', '$blockListFactory', '$injector', '$emptyInjector'],
+    angular.core.Block,
+    true);
 
-angular.core.Block.loadExistingBlocksIntoAnchor = function (anchor, element, blocksForAnchor) {
-  var lastTemplate = null;
+/**
+ * @param {Element} element
+ * @param {string} name
+ * @return {function(string=):string}
+ */
+angular.core.Block.attrAccessorFactory = function(element, name) {
+  VERIFY(arguments,
+    ARG('element').is(Element),
+    ARG('name').is(String));
 
-  for(var k = 0, kk = blocksForAnchor.length, cmd; k < kk; k++) {
-    cmd = blocksForAnchor[k];
-    switch(typeof cmd) {
-      case 'function':
-        lastTemplate = cmd;
-        break;
-      case 'number':
-        while(cmd--) {
-          anchor.addExisting(lastTemplate([element = element.nextSibling]));
-        }
-        break;
-      case 'object':
-        /* assume array */
-        anchor.addExisting(lastTemplate([element = element.nextSibling], cmd));
-        break;
-    }
-  }
-};
-
-
-angular.core.Block.attrAccessor = function(element, name) {
+  /**
+   * @param {string=} value
+   * @return string
+   */
   return function(value) {
     return arguments.length
-        ? element.setAttribute(name, value)
+        ? element.setAttribute(name, /** @type {string} */ (value)) || value
         : element.getAttribute(name);
   };
 };
 
-angular.core.Block.classAccessor = function(element, name) {
+/**
+ * @param {Element} element
+ * @param {string} name
+ * @return {function(boolean=):boolean}
+ */
+angular.core.Block.classAccessorFactory = function(element, name) {
+  /**
+   * @param {boolean=} value
+   * @return {boolean}
+   */
   return function(value) {
     var className = element.className,
         paddedClassName = ' ' + className + ' ',
@@ -159,7 +330,16 @@ angular.core.Block.classAccessor = function(element, name) {
   };
 };
 
-angular.core.Block.styleAccessor = function(element, name)  {
+/**
+ * @param {string} name
+ * @param {Node} element
+ * @return {function(string=):string}
+ */
+angular.core.Block.styleAccessorFactory = function(element, name) {
+  /**
+   * @param {string=} value
+   * @return {string}
+   */
   return function(value) {
     if (arguments.length) {
       if (!value) {
@@ -173,9 +353,25 @@ angular.core.Block.styleAccessor = function(element, name)  {
   };
 };
 
-angular.core.Block.BLOCK_DYNAMIC_SERVICES_REGEX =
+
+
+
+
+/** @typedef {function(string, angular.core.Block, Node, angular.Injector):*} */
+angular.core.DynamicServiceFactoryFn;
+
+/**
+ * @type {RegExp}
+ * @private
+ */
+angular.core.Block.DYNAMIC_SERVICES_REGEX_ =
     /^(\$text|\$attr_?|\$style_?|\$class_?|\$on_?|\$prop_?|\$service_)(.*)$/;
-angular.core.Block.BLOCK_DYNAMIC_SERVICES = {
+
+/**
+ * @type {Object.<angular.core.DynamicServiceFactoryFn>}
+ * @private
+ */
+angular.core.Block.DYNAMIC_SERVICES_ = {
   '$text': function(name, block, element) {
     return element.nodeType == 3 /* text node */
         ? function(value) { element.nodeValue = value || ''; }
@@ -183,33 +379,28 @@ angular.core.Block.BLOCK_DYNAMIC_SERVICES = {
   },
 
   '$attr_': function(name, block, element) {
-    return angular.core.Block.attrAccessor(element, name);
+    return angular.core.Block.attrAccessorFactory(name, element);
   },
 
   '$attr': function(name, block, element) {
-    return function(name) {
-      return angular.core.Block.attrAccessor(element, name);
-    };
+    VAR(element).is(Element);
+    return bind(null, angular.core.Block.attrAccessorFactory, element);
   },
 
   '$style_': function(name, block, element) {
-    return angular.core.Block.styleAccessor(element, name);
+    return angular.core.Block.styleAccessorFactory(name, element);
   },
 
   '$style': function(name, block, element) {
-    return function(name) {
-      return angular.core.Block.styleAccessor(element, name);
-    };
+    return bind(null, angular.core.Block.styleAccessorFactory, element);
   },
 
   '$class_': function(name, block, element) {
-    return angular.core.Block.classAccessor(element, block);
+    return angular.core.Block.classAccessorFactory(name, element);
   },
 
   '$class': function(name, block, element) {
-    return function(name) {
-      return angular.core.Block.classAccessor(element, name);
-    };
+    return bind(null, angular.core.Block.classAccessorFactory, element);
   },
 
   '$on_': function(name, block, element) {
@@ -236,6 +427,9 @@ angular.core.Block.BLOCK_DYNAMIC_SERVICES = {
   }
 };
 
+/**
+ * @param {angular.core.Scope} scope
+ */
 angular.core.Block.prototype.attach = function(scope) {
   // Attach directives
   for(var directives = this.directives, i = 0, ii = directives.length; i < ii; i++) {
@@ -248,6 +442,9 @@ angular.core.Block.prototype.attach = function(scope) {
 };
 
 
+/**
+ * @param {angular.core.Scope} scope
+ */
 angular.core.Block.prototype.detach = function(scope) {
   for(var directives = this.directives, i = 0, ii = directives.length, directive; i < ii; i++) {
     try {
@@ -260,21 +457,31 @@ angular.core.Block.prototype.detach = function(scope) {
 };
 
 
+/**
+ * @param {angular.core.ElementWrapper} previousBlock
+ * @return {angular.core.Block}
+ */
 angular.core.Block.prototype.insertAfter = function(previousBlock) {
-  ASSERT(previousBlock);
   // Update Link List.
   if (this.next = previousBlock.next) {
     this.next.previous = this;
   }
-  (this.previous = previousBlock).next = this;
+  this.previous = previousBlock;
+  previousBlock.next = this;
 
   // Update DOM
-  var previousElements = previousBlock.elements,
-      previousElement = previousElements[previousElements.length - 1],
-      insertBeforeElement = previousElement.nextSibling,
-      parentElement = previousElement.parentNode,
-      elements = this.elements,
-      preventDefault = false;
+  /** @type {angular.core.NodeList} */
+  var previousElements = previousBlock.elements;
+  /** @type {Node} */
+  var previousElement = previousElements[previousElements.length - 1];
+  /** @type {Node} */
+  var insertBeforeElement = previousElement.nextSibling;
+  /** @type {Node} */
+  var parentElement = previousElement.parentNode;
+  /** @type {angular.core.NodeList} */
+  var elements = this.elements;
+  /** @type {boolean} */
+  var preventDefault = false;
 
   function insertDomElements() {
     for(var i = 0, ii = elements.length; i < ii; i++) {
@@ -295,15 +502,19 @@ angular.core.Block.prototype.insertAfter = function(previousBlock) {
   if (!preventDefault) {
     insertDomElements();
   }
-
   return this;
 };
 
-
+/**
+ * @return {angular.core.Block}
+ */
 angular.core.Block.prototype.remove = function() {
-  var preventDefault = false,
-      elements = this.elements,
-      parent = elements[0].parentNode;
+  /** @type {boolean} */
+  var preventDefault = false;
+  /** @type {angular.core.NodeList} */
+  var elements = this.elements;
+  /** @type {Node} */
+  var parent = elements[0].parentNode;
 
   function removeDomElements() {
     for(var j = 0, jj = elements.length; j < jj; j++) {
@@ -330,9 +541,14 @@ angular.core.Block.prototype.remove = function() {
     this.next.previous = this.previous;
   }
   this.next = this.previous = null;
+  return this;
 };
 
 
+/**
+ * @param {angular.core.Block} previousBlock
+ * @return {angular.core.Block}
+ */
 angular.core.Block.prototype.moveAfter = function(previousBlock) {
   var previousElements = previousBlock.elements,
       previousElement = previousElements[previousElements.length - 1],
@@ -352,9 +568,9 @@ angular.core.Block.prototype.moveAfter = function(previousBlock) {
   if (this.next = previousBlock.next) {
     this.next.previous = this;
   }
-  (this.previous = previousBlock).next = this;
+  this.previous = previousBlock;
+  previousBlock.next = this;
+  return this;
 };
-
-angular.core.Block.emptyInjector = createInjector();
 
 

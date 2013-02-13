@@ -52,7 +52,7 @@ angular.core.module.provider('$filter', $FilterProvider);
  *
  *
  * For more information about how angular filters work, and how to create your own filters, see
- * {@link guide/dev_guide.templates.filters Understanding Angular Filters} in the angular Developer
+ * {@link guide/dev_guide.blockTypes.filters Understanding Angular Filters} in the angular Developer
  * Guide.
  */
 /**

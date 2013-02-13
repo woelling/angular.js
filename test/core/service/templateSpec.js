@@ -13,7 +13,7 @@ describe('template', function() {
 
   describe('create', function() {
     it('should create template from HTML', function() {
-      var template = $blockTypeFactory('<span>A</span>');
+      var template = $blockTypeFactory('<span>A</span>', []);
 
       var a = template();
       var b = template();
@@ -28,7 +28,7 @@ describe('template', function() {
 
     it('should create template from DOM', function() {
       $rootElement.html('<span class="id">A</span>')
-      var template = $blockTypeFactory('.id');
+      var template = $blockTypeFactory($rootElement.find('span'), []);
 
       var a = template();
       var b = template();

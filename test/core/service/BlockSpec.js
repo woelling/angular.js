@@ -4,14 +4,16 @@ describe('Block', function() {
   beforeEach(module('core.test'));
 
   var anchor, $rootElement, $blockTypeFactory;
+  var blockCache;
 
   beforeEach(module(function() {
-    return function($anchorFactory, _$blockTypeFactory_, _$rootElement_) {
+    return function($blockListFactory, _$blockTypeFactory_, _$rootElement_) {
       $blockTypeFactory = _$blockTypeFactory_;
       $rootElement = _$rootElement_;
 
       $rootElement.html('<!-- anchor -->');
-      anchor = $anchorFactory([$rootElement[0].firstChild]);
+      anchor = $blockListFactory([$rootElement[0].firstChild], {});
+      blockCache = new angular.core.BlockCache();
     }
   }));
 
@@ -21,8 +23,8 @@ describe('Block', function() {
     beforeEach(inject());
 
     beforeEach(function() {
-      a = $blockTypeFactory('<span>A</span>a')();
-      b = $blockTypeFactory('<span>B</span>b')();
+      a = $blockTypeFactory('<span>A</span>a', [])();
+      b = $blockTypeFactory('<span>B</span>b', [])();
     });
 
 
@@ -94,14 +96,6 @@ describe('Block', function() {
         expect(b.next).toBe(null);
         expect(b.previous).toBe(anchor);
       });
-
-      it('should remove free standing block', function() {
-        $rootElement.html('<div><span class="b"></span></div>')
-        var block = $blockTypeFactory('.b')('.b');
-
-        anchor.addExisting(block);
-        block.remove();
-      })
     });
 
 

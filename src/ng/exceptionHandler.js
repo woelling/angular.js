@@ -28,7 +28,7 @@ function $ExceptionHandlerProvider() {
      * @param {string=} cause optional information about the context in which
      *       the error was thrown.
      */
-    return function(exception, cause) {
+    return function exceptionHandler(exception, cause) {
       $log.error.apply($log, arguments);
     };
   }];
@@ -37,4 +37,6 @@ function $ExceptionHandlerProvider() {
 /**
  * @typedef {function((Error|string), string=)}
  */
-angular.core.ExceptionHandler;
+angular.core.ExceptionHandler = TYPE('angular.core.ExceptionHandler', function(fn) {
+  return typeof fn == 'function';
+});

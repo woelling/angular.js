@@ -1,3 +1,7 @@
+$.prototype.ngFind = function(selector) {
+  return $(angular.core.dom.select($(this), selector));
+}
+
 /**
  * Remove IDs from HTML.
  * @param {Node|string} obj HTML or DOM Element to cleanup.

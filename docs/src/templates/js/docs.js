@@ -292,7 +292,7 @@ docsApp.controller.DocsController = function($scope, $location, $window, $cookie
         module: 'guide/module',
         directive: 'guide/directive',
         input: 'api/ng.directive:input',
-        filter: 'guide/dev_guide.templates.filters',
+        filter: 'guide/dev_guide.blockTypes.filters',
         service: 'guide/dev_guide.services',
         type: 'guide/types'
       };

@@ -181,6 +181,7 @@ angular.Module.prototype.curryTypeFactory = function(name, Type, isPrivate) {
   this.factory(name, ['$injector', function($injector) {
     var CurriedType = $injector.curry(Type);
 
+    //TODO(misko): move this to $provider and use .apply
     return function(a, b, c, d, e, f, g, h, i, j) {
       if (arguments.length > 10) { throw Error('Too many arguments'); }
       return new CurriedType(a, b, c, d, e, f, g, h, i, j);

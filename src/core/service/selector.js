@@ -1,65 +1,124 @@
 'use strict';
 
 goog.provide('angular.core.selector');
+goog.provide('angular.core.Html');
 goog.provide('angular.core.Select');
-goog.require('angular.core.Directive')
+goog.provide('angular.core.Selector');
+goog.provide('angular.core.DirectiveInfo');
+
+goog.require('angular.core.Directive');
+
+
+/**
+ * @typedef {{
+ *   selector: string,
+ *   element: Node,
+ *   pseudoElement: boolean,
+ *   name: string,
+ *   value: string,
+ *   childNodes: angular.core.NodeList,
+ *   DirectiveType: angular.core.DirectiveType
+ * }}
+ */
+angular.core.DirectiveInfo = TYPE('angular.core.DirectiveInfo', function(info) {
+  return TYPE.verifyStruct(info, {
+     selector: String,
+     element: Node,
+     pseudoElement: Boolean,
+     name: String,
+     value: String,
+     childNodes: angular.core.NodeList,
+     DirectiveType: angular.core.DirectiveType
+  });
+});
 
 /**
  * @typedef { function(Node):Array.<angular.core.DirectiveInfo> }
  */
-angular.core.Select;
+angular.core.SelectorFn;
+
+/**
+ * @typedef {string}
+ */
+angular.core.Selector = TYPE('angular.core.Selector', function(value) {
+  return typeof value == 'string';
+});
+
+/**
+ * @typedef {string}
+ */
+angular.core.Html;
+
+/**
+ * @typedef {{ selector:string, regexp:RegExp  }}
+ * @private
+ */
+angular.core.selector.Info;
 
 /**
  * @param {Array.<string>} selectors the selectors.
  * @param {string=} startWith the required starting character for the selectors.
- * @returns {angular.core.Select} selector function.
+ * @returns {angular.core.SelectorFn} selector function.
  */
 angular.core.selector = function (selectors, startWith) {
-  var elementMap = {},
-      anyClassMap = {},
-      anyAttrMap = {},
-      attrSelector = [],
-      textSelector = [];
 
-  forEach(selectors, function(selector) {
-    var match;
+  /** @type {Object.<Object.<Object.<string>>>} */
+  var elementMap = {};
+  /** @type {Object.<Object.<string>>} */
+  var anyAttrMap = {};
+  /** @type {Object.<string>} */
+  var anyClassMap = {};
+  /** @type {Array.<angular.core.selector.Info>} */
+  var attrSelector = [];
+  /** @type {Array.<angular.core.selector.Info>} */
+  var textSelector = [];
 
-    if (startWith) {
-      if (selector.substring(0, startWith.length) == startWith) {
-        selector = selector.substring(startWith.length);
-      } else {
-        throw Error('Selector must start with: ' + startWith + ' was: ' + selector);
-      }
-    }
+  forEach(selectors,
+      /**
+       * @param {string} selector
+       */
+      function(selector) {
+        /** @type {Array.<string>|null} */
+        var match;
 
-    if (match = selector.match(angular.core.selector.CONTAINS_REGEXP)) {
-      textSelector.push({ selector: selector, regexp: new RegExp(match[1])});
-    } else if (match = selector.match(angular.core.selector.ATTR_CONTAINS_REGEXP)) {
-      attrSelector.push({ selector: selector, regexp: new RegExp(match[1])});
-    } else if (match = selector.match(angular.core.selector.SELECTOR_REGEXP)){
-      var elementName = match[1] || '',
-          className = match[2] || '',
-          attrName = match[3] || '',
-          value = match[4] || '',
-          elementAttrMap,
-          valueMap;
+        if (startWith) {
+          if (selector.substring(0, startWith.length) == startWith) {
+            selector = selector.substring(startWith.length);
+          } else {
+            throw Error('Selector must start with: ' + startWith + ' was: ' + selector);
+          }
+        }
 
-      if (elementName && !className) {
-        elementAttrMap = elementMap[elementName] || (elementMap[elementName] = {}),
-        valueMap = elementAttrMap[attrName] || (elementAttrMap[attrName] = {});
-        valueMap[value] = selector;
-      } else if (attrName && !className && !elementName) {
-        valueMap = anyAttrMap[attrName] || (anyAttrMap[attrName] = {});
-        valueMap[value] = selector;
-      } else if (className && !elementName && !attrName) {
-        anyClassMap[className] = selector;
-      } else {
-        throw new Error('Unsupported Selector: ' + selector);
-      }
-    } else {
-      throw new Error('Unsupported Selector: ' + selector);
-    }
-  });
+        if (match = selector.match(angular.core.selector.CONTAINS_REGEXP_)) {
+          textSelector.push({ selector: selector, regexp: new RegExp(match[1])});
+        } else if (match = selector.match(angular.core.selector.ATTR_CONTAINS_REGEXP_)) {
+          attrSelector.push({ selector: selector, regexp: new RegExp(match[1])});
+        } else if (match = selector.match(angular.core.selector.SELECTOR_REGEXP_)){
+          var elementName = match[1] || '',
+              className = match[2] || '',
+              attrName = match[3] || '',
+              value = match[4] || '';
+          /** @type {Object.<Object.<string>>} */
+          var elementAttrMap;
+          /** @type {Object.<string>} */
+          var valueMap;
+
+          if (elementName && !className) {
+            elementAttrMap = elementMap[elementName] || (elementMap[elementName] = {}),
+            valueMap = elementAttrMap[attrName] || (elementAttrMap[attrName] = {});
+            valueMap[value] = selector;
+          } else if (attrName && !className && !elementName) {
+            valueMap = anyAttrMap[attrName] || (anyAttrMap[attrName] = {});
+            valueMap[value] = selector;
+          } else if (className && !elementName && !attrName) {
+            anyClassMap[className] = selector;
+          } else {
+            throw new Error('Unsupported Selector: ' + selector);
+          }
+        } else {
+          throw new Error('Unsupported Selector: ' + selector);
+        }
+      });
 
   /**
    * @param {Array.<angular.core.DirectiveInfo>} directives
@@ -100,13 +159,17 @@ angular.core.selector = function (selectors, startWith) {
 
   /**
    * @param {Node} node
-   * @returns {Array.<angular.core.DirectiveInfo>}
+   * @return {Array.<angular.core.DirectiveInfo>}
    */
   function selector(node) {
-    var directives = [],
-        classNames,
-        nodeName = node.nodeName,
-        elementAttrMap = elementMap[nodeName.toLowerCase()];
+    /** @type {Array.<angular.core.DirectiveInfo>} */
+    var directiveInfos = [];
+    /** @type {Array.<string>} */
+    var classNames;
+    /** @type {string} */
+    var nodeName = node.nodeName;
+    /** @type {Object.<Object.<string>>} */
+    var elementAttrMap = elementMap[nodeName.toLowerCase()];
 
     switch(node.nodeType) {
       case 1: /* Element */
@@ -114,7 +177,7 @@ angular.core.selector = function (selectors, startWith) {
         if (elementAttrMap && elementAttrMap.hasOwnProperty('')) {
           var valueMap = elementAttrMap[''];
           if (valueMap.hasOwnProperty('')) {
-            addDirective(directives, node, valueMap['']);
+            addDirective(directiveInfos, node, valueMap['']);
           }
         }
 
@@ -123,7 +186,7 @@ angular.core.selector = function (selectors, startWith) {
           classNames = classNames.split(' ');
           for(var i = 0, ii = classNames.length, name; i < ii; i++) {
             name = classNames[i];
-            anyClassMap.hasOwnProperty(name) && addDirective(directives, node, anyClassMap[name], 'class', name);
+            anyClassMap.hasOwnProperty(name) && addDirective(directiveInfos, node, anyClassMap[name], 'class', name);
           }
         }
 
@@ -141,15 +204,15 @@ angular.core.selector = function (selectors, startWith) {
                 // this directive is matched on any attribute name, and so
                 // we need to pass the name to the directive by prefixing it to the
                 // value. Yes it is a bit of a hack.
-                addDirective(directives, node, selectorRegExp.selector, attrName, attrName + '=' + value);
+                addDirective(directiveInfos, node, selectorRegExp.selector, attrName, attrName + '=' + value);
               }
             }
 
             if (elementAttrMap && elementAttrMap.hasOwnProperty(attrName)) {
-              addAttrDirective(directives, node, elementAttrMap[attrName], attrName, value);
+              addAttrDirective(directiveInfos, node, elementAttrMap[attrName], attrName, value);
             }
             if (anyAttrMap.hasOwnProperty(attrName)) {
-              addAttrDirective(directives, node, anyAttrMap[attrName], attrName, value);
+              addAttrDirective(directiveInfos, node, anyAttrMap[attrName], attrName, value);
             }
           }
         }
@@ -159,12 +222,12 @@ angular.core.selector = function (selectors, startWith) {
           var selectorRegExp = textSelector[k]
 
           if (value.match(selectorRegExp.regexp)) {
-            addDirective(directives, node, selectorRegExp.selector, nodeName, value);
+            addDirective(directiveInfos, node, selectorRegExp.selector, nodeName, value);
           }
         }
         break;
       case 8: /* Comment */
-        var match = node.nodeValue.match(angular.core.selector.COMMENT_COMPONENT_REGEXP);
+        var match = node.nodeValue.match(angular.core.selector.COMMENT_COMPONENT_REGEXP_);
 
         if (match) {
           var commentDirectives = [],
@@ -195,17 +258,21 @@ angular.core.selector = function (selectors, startWith) {
             var directiveInfo = commentDirectives[i];
 
             directiveInfo.childNodes = childNodes;
-            directives.push(directiveInfo);
+            directiveInfos.push(directiveInfo);
           }
         }
     }
 
-    return directives;
+    return directiveInfos;
   }
   return selector;
 };
 
-angular.core.selector.SELECTOR_REGEXP = /^([\w\-]*)(?:\.([\w\-]*))?(?:\[([\w\-]*)(?:=(.*))?\])?$/;
-angular.core.selector.COMMENT_COMPONENT_REGEXP = /^\[([\w\-]+)(?:\=(.*))?\]$/;
-angular.core.selector.CONTAINS_REGEXP = /^:contains\(\/(.+)\/\)$/;
-angular.core.selector.ATTR_CONTAINS_REGEXP = /^\[\*=\/(.+)\/\]$/;
+/** @type {RegExp} @private */
+angular.core.selector.SELECTOR_REGEXP_ = /^([\w\-]*)(?:\.([\w\-]*))?(?:\[([\w\-]*)(?:=(.*))?\])?$/;
+/** @type {RegExp} @private */
+angular.core.selector.COMMENT_COMPONENT_REGEXP_ = /^\[([\w\-]+)(?:\=(.*))?\]$/;
+/** @type {RegExp} @private */
+angular.core.selector.CONTAINS_REGEXP_ = /^:contains\(\/(.+)\/\)$/;
+/** @type {RegExp} @private */
+angular.core.selector.ATTR_CONTAINS_REGEXP_ = /^\[\*=\/(.+)\/\]$/;

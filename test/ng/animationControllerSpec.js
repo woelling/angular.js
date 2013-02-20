@@ -1,30 +1,18 @@
 'use strict';
 
-describe("AnimationController", function() {
+describe("Animator", function() {
 
   var element, animationCntl;
 
-  beforeEach(function() {
-    animationCntl = new AnimationController();
-  });
+  beforeEach(inject(function($injector) {
+    animationCntl = $injector.instantiate(Animator);
+  }));
 
   afterEach(function(){
-    if(element) dealoc(element);
-  });
-
-  it("should exist", function() {
-    expect(AnimationController).toBeDefined();
-  });
-
-  it("should be a valid instantiated object", function() {
-    expect(animationCntl).toEqual(jasmine.any(Object));
+    dealoc(element);
   });
 
   describe("set()", function() {
-    it("should be defined", function() {
-      expect(typeof(animationCntl.set)).toBe('function');
-    });
-
     it("should throw an error when used incorrectly", function() {
       var fn1 = function() {
         animationCntl.set('custom1');

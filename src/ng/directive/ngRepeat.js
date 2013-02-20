@@ -57,15 +57,15 @@
       </doc:scenario>
     </doc:example>
  */
-var ngRepeatDirective = ['$noopAnimator', function($noopAnimator) { 
+var ngRepeatDirective = ['$noopAnimator', function($noopAnimator) {
   return {
     transclude: 'element',
     priority: 1000,
     terminal: true,
     require: '?ngAnimate', // optional
     compile: function(element, attr, linker) {
-      return function(scope, iterStartElement, attr, ngAnimate){
-        ngAnimate = ngAnimate || $noopAnimator;
+      return function(scope, iterStartElement, attr, animator){
+        animator = animator || $noopAnimator;
         var expression = attr.ngRepeat;
         var match = expression.match(/^\s*(.+)\s+in\s+(.*)\s*$/),
           lhs, rhs, valueIdent, keyIdent;
@@ -144,7 +144,7 @@ var ngRepeatDirective = ['$noopAnimator', function($noopAnimator) {
                 // This may be a noop, if the element is next, but I don't know of a good way to
                 // figure this out,  since it would require extra DOM access, so let's just hope that
                 // the browsers realizes that it is noop, and treats it as such.
-                ngAnimate.animate('move', last.element, iterStartElement.parent(), cursor);
+                animator.animate('move', last.element, iterStartElement.parent(), cursor);
                 cursor = last.element;
               }
             } else {
@@ -162,7 +162,7 @@ var ngRepeatDirective = ['$noopAnimator', function($noopAnimator) {
 
             if (!last) {
               linker(childScope, function(clone){
-                ngAnimate.animate('enter', clone, iterStartElement.parent(), cursor);
+                animator.animate('enter', clone, iterStartElement.parent(), cursor);
                 last = {
                     scope: childScope,
                     element: (cursor = clone),
@@ -179,7 +179,7 @@ var ngRepeatDirective = ['$noopAnimator', function($noopAnimator) {
               array = lastOrder[key];
               while(array.length) {
                 value = array.pop();
-                ngAnimate.animate('leave', value.element, value.element.parent());
+                animator.animate('leave', value.element, value.element.parent());
                 value.scope.$destroy();
               }
             }

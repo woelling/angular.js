@@ -1,47 +1,35 @@
 'use strict';
 
-var noopAnimations = {
-  'noopEnter' : function() {
-    return function(node, parent, after) {
-      after ? after.after(node) : parent.append(node);
-    };
-  },
-
-  'noopLeave' : function() {
-    return function(node, parent, after) {
-      node.remove();
-    };
-  },
-
-  'noopMove' : function() {
-    return function(node, parent, after) {
-      after ? after.after(node) : parent.append(node);
-    };
-  }
-};
-
 $AnimationProvider.$inject = ['$provide'];
 function $AnimationProvider($provide) {
   var suffix = 'Animation';
-
   var register = function(name, factory) {
-    name = camelCase(name) + suffix;
-    $provide.factory(name, factory);
+    $provide.factory(camelCase(name) + suffix, factory);
   };
+
   this.register = register;
 
   this.$get = function($injector) {
-    return function(name) {
-      name = camelCase(name) + suffix;
-      return $injector.get(name);
+    return function animationGetter(name) {
+      return $injector.get(camelCase(name) + suffix);
     }
   };
 
-  $provide.factory('$noopAnimator', function($animation) {
-    return new AnimationController($animation);
+  register('noopEnter', function() {
+    return function(node, parent, after) {
+      after ? after.after(node) : parent.append(node);
+    };
   });
 
-  angular.forEach(noopAnimations, function(animator, name ){
-    register(name, animator);
+  register('noopLeave', function() {
+    return function(node, parent, after) {
+      node.remove();
+    };
   });
-}
+
+  register('noopMove', function() {
+    return function(node, parent, after) {
+      after ? after.after(node) : parent.append(node);
+    };
+  });
+};

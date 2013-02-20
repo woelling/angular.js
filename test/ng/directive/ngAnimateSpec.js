@@ -2,75 +2,88 @@
 
 describe('ngAnimate', function() {
 
-  var element, $compile, scope, animation, module;
+  var element, $compile, scope, animation;
+  var animationProvider;
 
-  beforeEach(inject(function(_$compile_, $rootScope, $animation) {
-    module = angular.module(['ng']);
-    $compile = _$compile_;
-    scope = $rootScope.$new();
-    animation = $animation;
+  beforeEach(module(function($animationProvider) {
+    animationProvider = $animationProvider;
+
+    return function(_$compile_, $rootScope, $animation) {
+      $compile = _$compile_;
+      scope = $rootScope.$new();
+      animation = $animation;
+    };
   }));
+  beforeEach(inject());
 
   afterEach(function(){
-    if(element) dealoc(element);
+    dealoc(element);
   });
 
   it("should not throw an error when no defaults are provided", function() {
     var fn1 = function() {
       var html = '<div ng-animate></div>';
       element = $compile(html)(scope);
+      dealoc(element);
     };
     expect(fn1).not.toThrow();
 
     var fn2 = function() {
       var html = '<div ng-animate=""></div>';
       element = $compile(html)(scope);
+      dealoc(element);
     };
     expect(fn2).not.toThrow();
   });
 
   it("should throw an error when any of the animators are not defined", function() {
     var fn1 = function() {
-      var html = '<div ng-animate="enter: missing1"></div>';
-      element = $compile(html)(scope);
+      element = jqLite('<div ng-animate="enter: missing1"></div>');
+      $compile(element)(scope);
     };
     expect(fn1).toThrow();
+    dealoc(element);
 
     var fn2 = function() {
-      var html = '<div ng-animate="leave: missing2"></div>';
-      element = $compile(html)(scope);
+      element = jqLite('<div ng-animate="leave: missing2"></div>');
+      $compile(element)(scope);
     };
     expect(fn2).toThrow();
+    dealoc(element);
 
     var fn3 = function() {
-      var html = '<div ng-animate="move: missing3"></div>';
-      element = $compile(html)(scope);
+      element = jqLite('<div ng-animate="move: missing3"></div>');
+      $compile(element)(scope);
     };
     expect(fn3).toThrow();
+    dealoc(element);
 
     var fn4 = function() {
-      var html = '<div ng-animate="enter: noop-enter; leave: missing4"></div>';
-      element = $compile(html)(scope);
+      element = jqLite('<div ng-animate="enter: noop-enter; leave: missing4"></div>');
+      $compile(element)(scope);
     };
     expect(fn4).toThrow();
+    dealoc(element);
   });
 
   describe("custom animations", function() {
 
     it("should not throw an error when a custom animation is already defined", function() {
-      module.animation('custom-animation', function() {
+      animationProvider.register('custom-animation', function() {
         return function() {};
       });
 
       var fn1 = function() {
         var html = '<div ng-animate="enter: custom-animation"></div>';
         element = $compile(html)(scope);
+        dealoc(element);
       };
       expect(fn1).not.toThrow();
 
       var fn2 = function() {
         var html = '<div ng-animate="enter: customAnimation"></div>';
         element = $compile(html)(scope);
+        dealoc(element);
       };
       expect(fn2).not.toThrow();
     });
@@ -82,26 +95,30 @@ describe('ngAnimate', function() {
       var fn1 = function() {
         var html = '<div ng-animate="enter: noop-enter"></div>';
         element = $compile(html)(scope);
+        dealoc(element);
       };
       expect(fn1).not.toThrow();
 
       var fn2 = function() {
         var html = '<div ng-animate="enter: noopEnter"></div>';
         element = $compile(html)(scope);
+        dealoc(element);
       };
       expect(fn2).not.toThrow();
     });
 
     it("should have a leave animation defined", function() {
       var fn1 = function() {
-        var html = '<div ng-animate="enter: noop-leave"></div>';
-        element = $compile(html)(scope);
+        element = jqLite('<div><div ng-animate="enter: noop-leave"></div></div>');
+        $compile(element)(scope);
+        dealoc(element);
       };
       expect(fn1).not.toThrow();
 
       var fn2 = function() {
         var html = '<div ng-animate="enter: noopLeave"></div>';
         element = $compile(html)(scope);
+        dealoc(element);
       };
       expect(fn2).not.toThrow();
     });
@@ -110,12 +127,14 @@ describe('ngAnimate', function() {
       var fn1 = function() {
         var html = '<div ng-animate="enter: noop-move"></div>';
         element = $compile(html)(scope);
+        dealoc(element);
       };
       expect(fn1).not.toThrow();
 
       var fn2 = function() {
         var html = '<div ng-animate="enter: noopMove"></div>';
         element = $compile(html)(scope);
+        dealoc(element);
       };
       expect(fn2).not.toThrow();
     });

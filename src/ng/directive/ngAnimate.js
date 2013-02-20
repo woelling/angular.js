@@ -3,7 +3,7 @@
 var ngAnimateDirective = function($animation) {
   return {
     priority : 9000, //this needs to always be higher than ngRepeat
-    controller: AnimationController,
+    controller: Animator,
     require: 'ngAnimate',
     link: function(scope, element, attrs, animationCntl) {
       var ngAnimateAttr = attrs.ngAnimate;
@@ -28,26 +28,33 @@ var ngAnimateDirective = function($animation) {
   };
 };
 
-var AnimationController = function($animation) {
-  this.animators = {};
-  this.set('enter', $animation('noopEnter'));
-  this.set('leave', $animation('noopLeave'));
-  this.set('move',  $animation('noopMove'));
-};
+var Animator = function($animation) {
+  var animators = {
+    'enter': $animation('noopEnter'),
+    'leave': $animation('noopLeave'),
+    'move':  $animation('noopMove')
+  };
 
-AnimationController.prototype = {
-  set: function(name, animator) {
+  this.set = function(name, animator) {
     if(typeof(animator) != 'function') {
       throw Error("'" + name + "' does not have a properly defined animation function");
     }
-    this.animators[name] = animator;
+    animators[name] = animator;
   },
 
-  animate: function(name, node, parent, after) {
-    var animator = this.animators[name];
+  this.animate = function(name, node, parent, after) {
+    var animator = animators[name];
     if(typeof(animator) != 'function') {
       throw Error("'" + name + "' animator method was not found");
     }
     animator(node, parent, after);
-  }
+  };
 };
+Animator.$inject = ['$animation'];
+
+var $noopAnimatorFactory = ['$animation', function($animation) {
+  var ctl = new Animator($animation);
+
+  ctl.set = undefined; // prevent anyone from changing it.
+  return ctl;
+}];

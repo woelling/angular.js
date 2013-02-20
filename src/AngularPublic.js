@@ -129,6 +129,7 @@ function publishExternalAPI(angular){
         $timeout: $TimeoutProvider,
         $window: $WindowProvider
       });
+      $provide.factory('$noopAnimator', $noopAnimatorFactory);
     }
   ]);
 }

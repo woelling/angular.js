@@ -25,20 +25,23 @@ function $AnimationProvider($provide) {
   var suffix = 'Animation';
 
   var register = function(name, factory) {
-    console.log(name);
-    name = camelCase(name + suffix)
+    name = camelCase(name) + suffix;
     $provide.factory(name, factory);
   };
   this.register = register;
 
   this.$get = function($injector) {
     return function(name) {
-      name = camelCase(name + suffix);
+      name = camelCase(name) + suffix;
       return $injector.get(name);
     }
   };
 
-  for(var key in noopAnimations) {
-    register(key, noopAnimations[key]);
-  };
+  $provide.factory('$noopAnimator', function($animation) {
+    return new AnimationController($animation);
+  });
+
+  angular.forEach(noopAnimations, function(animator, name ){
+    register(name, animator);
+  });
 }

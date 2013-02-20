@@ -9,29 +9,27 @@ var ngAnimateDirective = function($animation) {
       var ngAnimateAttr = attrs.ngAnimate;
 
       //SAVED: http://rubular.com/r/0DCBzCtVml
-      var parsed = {};
       var matches = ngAnimateAttr.split(/(?:([-\w]+)\ *:\ *([-\w]+)(?:;|$))+/g);
+      if(!matches || matches.length == 0) {
+        throw Error("Expected ngAnimate in form of 'animation: definition; ...;' but got '" + ngAnimateAttr + "'.");
+      }
       for(var i=1; i < matches.length; i++) {
         var name  = matches[i++];
         var value = matches[i++];
         if(name && value) {
-          parsed[name] = value;
+          var animator = $animation(value);
+          if(!animator || typeof(animator) != 'function') {
+            throw new Error("Expected '" + value + "' to be defined for the '" + name + "' animation in ngAnimate");  
+          }
+          animationCntl.set(name, animator);
         }
       }
-
-      if(parsed.enter)  animationCntl.set('enter', $animation(parsed.enter));
-      if(parsed.leave)  animationCntl.set('leave', $animation(parsed.leave));
-      if(parsed.move)   animationCntl.set('move',  $animation(parsed.move));
     }
   };
 };
 
-var AnimationController = function() {
+var AnimationController = function($animation) {
   this.animators = {};
-
-  //TODO use a local injector
-  var $injector = angular.injector(['ng']);
-  var $animation = $injector.get('$animation');
   this.set('enter', $animation('noopEnter'));
   this.set('leave', $animation('noopLeave'));
   this.set('move',  $animation('noopMove'));

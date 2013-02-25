@@ -36,17 +36,15 @@ describe('dte.compiler', function() {
 
     $rootScope.items = [];
     $rootScope.$digest();
-    expect(element.html()).toEqual('<!--[repeat=item in items]--><!--[/repeat]-->');
+    expect(element.html()).toEqual('<!--ANCHOR: repeat=item in items-->');
   }));
 
 
   it('should compile multi-root repeater', inject(function() {
     var element = $(
         '<div>' +
-          '<!--[repeat=item in items]-->' +
-            '<div bind="item"></div>' +
-            '<span bind="item"></span>' +
-          '<!--[/repeat]-->' +
+          '<div repeat="item in items" bind="item" include-next></div>' +
+          '<span bind="item"></span>' +
         '</div>');
     var template = $compile(element);
 
@@ -56,10 +54,14 @@ describe('dte.compiler', function() {
     expect(element.text()).toEqual('');
     $rootScope.$digest();
     expect(element.text()).toEqual('AAbb');
+    expect(element.html()).toEqual(
+        '<!--ANCHOR: repeat=item in items-->' +
+        '<div repeat="item in items" bind="item" include-next="">A</div><span bind="item">A</span>' +
+        '<div repeat="item in items" bind="item" include-next="">b</div><span bind="item">b</span>');
 
     $rootScope.items = [];
     $rootScope.$digest();
-    expect(element.html()).toEqual('<!--[repeat=item in items]--><!--[/repeat]-->');
+    expect(element.html()).toEqual('<!--ANCHOR: repeat=item in items-->');
   }));
 
 
@@ -79,13 +81,6 @@ describe('dte.compiler', function() {
     expect(element.text()).toEqual('!');
     $rootScope.$digest();
     expect(element.text()).toEqual('OK!');
-  }));
-
-
-  it('should throw error if unclosed comment', inject(function() {
-    expect(function() {
-      $compile('<div><!--[repeat=item in items]--></div>');
-    }).toThrow('Missing ending comment: [/repeat]');
   }));
 
 
@@ -122,9 +117,11 @@ describe('dte.compiler', function() {
             var type = 'switch-when=' + value;
 
             if (!$anchor.blockTypes.hasOwnProperty(type)) {
-              type = 'switch-default='
+              type = 'switch-default'
             }
             block = $anchor.newBlock(type);
+            LOG(block);
+            LOG($anchor);
             block.insertAfter($anchor);
             block.attach(scope.$new());
           });
@@ -134,7 +131,7 @@ describe('dte.compiler', function() {
       $provide.value('directive:[switch]', Switch);
     }));
 
-    it('should transclude multiple templates', inject(function($rootScope) {
+    xit('should transclude multiple templates', inject(function($rootScope) {
       var element = $(
           '<div switch="name">' +
               '<span switch-when="a">when</span>' +
@@ -195,12 +192,10 @@ describe('dte.compiler', function() {
       $rootScope.$apply();
 
       expect(htmlIdClean(element)).toEqual(
-        '<div class="__ng_ID">' +
-          '<!--[one]-->' +
-            '<!--[two]-->' +
-              '<span two="" one="" class="__ng_ID">2</span>' +
-            '<!--[/two]-->' +
-          '<!--[/one]-->' +
+        '<div>' +
+        '<!--ANCHOR: one-->' +
+        '<!--ANCHOR: two-->' +
+        '<span two="" one="">2</span>' +
         '</div>');
     });
   });
@@ -264,27 +259,99 @@ describe('dte.compiler', function() {
 
 
   describe('reuse DOM instances', function() {
-    xit('should reuse repeat instances', inject(function() {
-      var element = $('<ul><li repeat="i in items" instance="1" bind="i">first</li><li instance="2">second</li></ul>');
+    it('should compile with no transclusion', inject(function($compile) {
+      var element = $('<span bind="name"></span>');
+      var spanBT = $compile(element);
+      var block = spanBT(element);
+
+      block.attach($rootScope);
+      $rootScope.name = 'world';
+      $rootScope.$apply();
+
+      expect(element.text()).toEqual('world');
+    }));
+
+    it('should compile with transclusion and no block reuse', inject(function() {
+      var element = $(
+          '<ul>' +
+              '<li>-</li>' +
+              '<li repeat="i in upper" bind="i">1</li>' +
+              '<li>-</li>' +
+          '</ul>');
+      var ulBlockType = $compile(element);
+      var block = ulBlockType(element);
+
+      block.attach($rootScope);
+      $rootScope.upper = ['A', 'B'];
+      $rootScope.$apply();
+
+      expect(element.text()).toEqual('-AB-');
+      expect(element.html()).toEqual(
+          '<li>-</li>' +
+          '<!--ANCHOR: repeat=i in upper-->' +
+          '<li repeat="i in upper" bind="i">A</li>' +
+          '<li repeat="i in upper" bind="i">B</li>' +
+          '<li>-</li>');
+    }));
+
+
+    it('should compile and collect template instances', inject(function() {
+      var element = $(
+          '<ul>' +
+              '<li>-</li>' +
+              '<li repeat="i in upper" instance="1" bind="i">1</li>' +
+              '<li instance="2">2</li>' +
+              '<li>-</li>' +
+          '</ul>');
       var blockCache = [];
       var ulBlockType = $compile(element, blockCache);
-
-      if (false) {
-        var liBlockType = $compile('<li bind="i"></li>');
-        blockCache.push(new angular.core.BlockCache([
-          liBlockType(element.find('[instance=1]')),
-          liBlockType(element.find('[instance=2]'))
-        ]))
-      }
 
       var block = ulBlockType(element, blockCache);
 
       block.attach($rootScope);
-      $rootScope.items = ['A', 'B'];
+      $rootScope.upper = ['A', 'B'];
       $rootScope.$apply();
 
-      expect(element.text()).toEqual('AB');
-      expect(element.html()).toEqual('<li repeat="i in items" instance="1" bind="i">A</li><li instance="2">B</li>');
+      expect(element.text()).toEqual('-AB-');
+      expect(element.html()).toEqual(
+          '<li>-</li>' +
+          '<!--ANCHOR: repeat=i in upper-->' +
+          '<li repeat="i in upper" instance="1" bind="i">A</li>' +
+          '<li instance="2">B</li>' +
+          '<li>-</li>');
+    }));
+
+    it('should compile and collect template instances, and correctly compute offsets', inject(function() {
+      var element = $(
+          '<ul>' +
+              '<li>-</li>' +
+              '<li repeat="i in upper" instance="1" bind="i">1</li>' +
+              '<li instance="2">2</li>' +
+              '<li>-</li>' +
+              '<li repeat="i in lower" instance="3" bind="i">3</li>' +
+              '<li instance="4">4</li>' +
+              '<li>-</li>' +
+          '</ul>');
+      var blockCache = [];
+      var ulBlockType = $compile(element, blockCache);
+      var block = ulBlockType(element, blockCache);
+
+      block.attach($rootScope);
+      $rootScope.upper = ['A', 'B'];
+      $rootScope.lower = ['a', 'b'];
+      $rootScope.$apply();
+
+      expect(element.text()).toEqual('-AB-ab-');
+      expect(element.html()).toEqual(
+          '<li>-</li>' +
+          '<!--ANCHOR: repeat=i in upper-->' +
+          '<li repeat="i in upper" instance="1" bind="i">A</li>' +
+          '<li instance="2">B</li>' +
+          '<li>-</li>' +
+          '<!--ANCHOR: repeat=i in lower-->' +
+          '<li repeat="i in lower" instance="3" bind="i">a</li>' +
+          '<li instance="4">b</li>' +
+          '<li>-</li>');
     }));
   });
 });

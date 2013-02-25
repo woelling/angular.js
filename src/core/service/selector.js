@@ -13,7 +13,6 @@ goog.require('angular.core.Directive');
  * @typedef {{
  *   selector: string,
  *   element: Node,
- *   pseudoElement: boolean,
  *   name: string,
  *   value: string,
  *   childNodes: angular.core.NodeList,
@@ -24,7 +23,6 @@ angular.core.DirectiveInfo = TYPE('angular.core.DirectiveInfo', function(info) {
   return TYPE.verifyStruct(info, {
      selector: String,
      element: Node,
-     pseudoElement: Boolean,
      name: String,
      value: String,
      childNodes: angular.core.NodeList,
@@ -126,13 +124,11 @@ angular.core.selector = function (selectors, startWith) {
    * @param {string} selector
    * @param {string=} name
    * @param {string=} value
-   * @param {boolean=} pseudoElement
    */
-  function addDirective(directives, element, selector, name, value, pseudoElement) {
+  function addDirective(directives, element, selector, name, value) {
     directives.push({
       selector: selector,
       element: element,
-      pseudoElement: pseudoElement,
       childNodes: element.childNodes,
       name: name,
       value: value
@@ -145,15 +141,14 @@ angular.core.selector = function (selectors, startWith) {
    * @param {Object.<string>} valueMap
    * @param {string=} name
    * @param {string=} value
-   * @param {boolean=} pseudoElement
    */
-  function addAttrDirective(directives, element, valueMap, name, value, pseudoElement) {
+  function addAttrDirective(directives, element, valueMap, name, value) {
     if (valueMap.hasOwnProperty('')) {
-      addDirective(directives, element, valueMap[''], name, value, pseudoElement);
+      addDirective(directives, element, valueMap[''], name, value);
     }
 
     if (value && valueMap.hasOwnProperty(value)) {
-      addDirective(directives, element, valueMap[value], name, value, pseudoElement);
+      addDirective(directives, element, valueMap[value], name, value);
     }
   }
 
@@ -227,6 +222,7 @@ angular.core.selector = function (selectors, startWith) {
         }
         break;
       case 8: /* Comment */
+        // TODO (misko) replace with angular.core.dom.pseudoWrap
         var match = node.nodeValue.match(angular.core.selector.COMMENT_COMPONENT_REGEXP_);
 
         if (match) {
@@ -238,7 +234,7 @@ angular.core.selector = function (selectors, startWith) {
               attrValue = match[2];
 
           if (anyAttrMap.hasOwnProperty(attrName)) {
-            addAttrDirective(commentDirectives, node, anyAttrMap[attrName], attrName, attrValue, true);
+            addAttrDirective(commentDirectives, node, anyAttrMap[attrName], attrName, attrValue);
           }
 
           while(true) {

@@ -39,7 +39,10 @@ angular.core.ElementWrapper.prototype.previous;
 /**
  * @interface
  */
-angular.core.Directive = function() {};
+angular.core.Directive = function angular_core_Directive() {};
+angular.core.Directive.__ASSERT__ = function(directive) {
+  return typeof directive == 'object';
+};
 
 /**
  * @param {angular.core.Scope} scope

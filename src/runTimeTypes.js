@@ -21,8 +21,9 @@ var VERIFY = function(args, opt_assertions) {
     }
   }
 
-  if (errors)
+  if (errors) {
     throw new Error(errors.join('\n'));
+  }
 }
 
 /**
@@ -346,3 +347,8 @@ var FUNCTION = function(var_union) {
     return typeof fn == 'function';
   });
 }
+
+
+Array.of = ARRAY;
+Object.of = OBJECT;
+Function.with = FUNCTION;

@@ -40,12 +40,15 @@ angular.core.BlockList = function ($rootScope, elements, blockTypes, blockCache)
     ARG('blockTypes').is(OBJECT(angular.core.BlockType)),
     ARG('blockCache').is(angular.core.BlockCache, undefined));
 
+
+  if (!blockCache) blockCache = new angular.core.BlockCache();
+
   /** @type {angular.core.NodeList} */
   this.elements = elements;
   /** @type {angular.core.ElementWrapper} */
   this.next = this.previous = null;
   /** @type {angular.core.BlockCache} */
-  this.blockCache = blockCache || new angular.core.BlockCache();
+  this.blockCache = blockCache;
   /** @type {Object.<angular.core.BlockType>} */
   this.blockTypes = blockTypes;
 
@@ -74,6 +77,7 @@ angular.core.BlockList.prototype.newBlock = function(type) {
 
   if (!block) {
     if (!this.blockTypes.hasOwnProperty(type)) {
+      LOG('blockTypes', STRINGIFY(this.blockTypes));
       throw new Error("Unknown block type: '" + type + "'.");
     }
 

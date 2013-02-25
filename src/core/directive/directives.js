@@ -12,7 +12,7 @@ goog.require('angular.core.AttrAccessor');
  * @constructor
  * @implements {angular.core.Directive}
  */
-angular.core.directive.Bind = function($text, $value) {
+angular.core.directive.Bind = function Bind($text, $value) {
   /**
    * @override
    * @param {angular.core.Scope} scope
@@ -111,7 +111,7 @@ angular.annotate.$inject(['$on_insert'], angular.core.directive.FadeIn);
  * @constructor
  * @implements {angular.core.Directive}
  */
-angular.core.directive.Repeat = function($anchor, $value, $service_$parse) {
+angular.core.directive.Repeat = function Repeat($anchor, $value, $service_$parse) {
   var collectionGetter,
       itemSetter;
 
@@ -159,7 +159,7 @@ angular.core.directive.Repeat = function($anchor, $value, $service_$parse) {
           block = $anchor.newBlock();
           iterationScope = scope.$new();
           itemSetter(iterationScope, value);
-          previousBlockMap.put(value, block);
+          currentBlockMap.put(value, block);
           block.$valueHashKey = hashKey(value);
           iterationScope.$index = i;
           block.attach(iterationScope);

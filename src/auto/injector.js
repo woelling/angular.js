@@ -138,6 +138,10 @@ function createInjector(modulesToLoad) {
   var pathHash = {}
 
   function pathPush(name, contextFunction) {
+    VAR(name).is(String);
+    VAR(contextFunction).is(angular.annotate.Info, undefined);
+    ASSERT_EQ(2 * Math.floor(path.length / 2), path.length);
+
     if (pathHash[name]) {
       angular.Injector.error(path, 'Circular dependency');
     }
@@ -148,7 +152,7 @@ function createInjector(modulesToLoad) {
 
   function pathPop() {
     path.pop();
-    pathHash[path.shift()] = false;
+    pathHash[path.pop()] = false;
   }
 
   /**
@@ -1171,9 +1175,11 @@ angular.Injector.error = function(path, reason) {
   while(index>0) {
     /** @type {angular.annotate.Info} */;
     var info = /** @type {angular.annotate.Info} */ (path[index--]);
+    VAR(info).is(angular.annotate.Info, undefined);
 
     /** @type {string} */
     var name = /** @type {string} */ (path[index--]);
+    VAR(name).is(String);
 
     error.push('   service: ' + name + ' requested by ' + angular.Injector.error.extractLocation(info));
 

@@ -6,7 +6,7 @@ FILES=`./lib/closure-compiler/closurebuilder.py --root=src/ --root=lib/closure-c
 if [ -z "$FILES" ]; then
   exit 1
 fi
-FILES="src/runTimeTypes.js src/assert.js $FILES"
+FILES="src/runTimeTypes.js src/log.js src/assert.js $FILES"
 FLAT_FILES=`echo $FILES`
 
 echo "files = [JASMINE, JASMINE_ADAPTER].
@@ -58,9 +58,15 @@ $COMPILE --js_output_file build/c-angular.js \
          --compilation_level SIMPLE_OPTIMIZATIONS \
          $FLAGS --js $FILES \
 
+ls -al build/c-angular.js
+
 exit;
 
 $COMPILE --js_output_file build/c-angular.min.js \
          --compilation_level ADVANCED_OPTIMIZATIONS \
          $FLAGS --js $FILES \
 
+ls -al build/c-angular.min.js
+rm build/c-angular.min.js.gz
+cat build/c-angular.min.js | gzip -c > build/c-angular.min.js.gz
+ls -al build/c-angular.min.js.gz

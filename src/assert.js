@@ -1,14 +1,29 @@
 'use strict';
 
 /**
- * @param {*} condition
+ * @template T
+ * @param {T} value
  * @param {string=} error
+ * @return {T}
  */
-var ASSERT = function(condition, error) {
+var ASSERT = function(value, error) {
   if (!COMPILED) {
-    if (condition === null || condition === undefined || condition === false) {
-      debugger;
+    if (value === null || value === undefined || value === false) {
       throw new Error(error);
+    }
+  }
+  return value;
+};
+
+/**
+ * @template T
+ * @param {T} left
+ * @param {T} right
+ */
+var ASSERT_EQ = function(left, right) {
+  if (!COMPILED) {
+    if (left != right) {
+      throw new Error(STRINGIFY(left) + ' != ' + STRINGIFY(right));
     }
   }
 };

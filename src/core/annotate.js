@@ -13,7 +13,15 @@ goog.require('angular.injector');
  *   $priority: (number|undefined)
  * }}
  */
-angular.annotate.Info;
+angular.annotate.Info = TYPE('angular.core.Info', function(info) {
+  return TYPE.verifyStruct(info, {
+    $inject: UNION(Array.of(String), undefined),
+    $injectLocation: UNION(Error, undefined),
+    $selector: UNION(String, undefined),
+    $transclude: UNION(String, undefined),
+    $priority: UNION(Number, undefined)
+  })
+});
 
 /**
  * Decorates the function with the $inject property.

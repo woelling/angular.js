@@ -1,6 +1,80 @@
 'use strict';
 
 describe('angular.core.dom', function() {
+  describe('angular.core.dom.NodeCursor', function() {
+    var a, b, c, d;
+
+    beforeEach(function() {
+      a = $('<a>A</a>')[0];
+      b = $('<b>B</b>')[0];
+      c = $('<i>C</i>')[0];
+      d = $('<span></span>')[0];
+      $(d).append(a).append(b);
+    });
+
+
+    it('should allow single level traversal', function() {
+      var cursor = new angular.core.dom.NodeCursor([a, b]);
+
+      expect(cursor.nodeList()).toEqual([a]);
+      expect(cursor.microNext()).toEqual(true);
+      expect(cursor.nodeList()).toEqual([b]);
+      expect(cursor.microNext()).toEqual(false);
+    });
+
+
+    it('should descend and ascend', function() {
+      var cursor = new angular.core.dom.NodeCursor([d, c]);
+
+      expect(cursor.descend()).toEqual(true);
+      expect(cursor.nodeList()).toEqual([a]);
+      expect(cursor.microNext()).toEqual(true);
+      expect(cursor.nodeList()).toEqual([b]);
+      expect(cursor.microNext()).toEqual(false);
+      cursor.ascend();
+      expect(cursor.microNext()).toEqual(true);
+      expect(cursor.nodeList()).toEqual([c]);
+      expect(cursor.microNext()).toEqual(false);
+    });
+
+
+    it('should create child cursor upon replace of top level', function() {
+      var parentCursor = new angular.core.dom.NodeCursor([a]);
+      var childCursor = parentCursor.replaceWithAnchor('child');
+
+      expect(parentCursor.elements.length).toEqual(1);
+      expect(STRINGIFY(parentCursor.elements[0])).toEqual('<!--ANCHOR: child-->');
+      expect(childCursor.elements).toEqual([a]);
+
+      var leafCursor = childCursor.replaceWithAnchor('leaf');
+
+      expect(childCursor.elements.length).toEqual(1);
+      expect(STRINGIFY(childCursor.elements[0])).toEqual('<!--ANCHOR: leaf-->');
+      expect(leafCursor.elements).toEqual([a]);
+    });
+
+
+    it('should create child cursor upon replace of mid level', function() {
+      var dom = $('<div><span>text</span></div>')
+      var parentCursor = new angular.core.dom.NodeCursor(dom);
+      parentCursor.descend(); // <span>
+
+      var childCursor = parentCursor.replaceWithAnchor('child');
+      expect(dom.html()).toEqual('<!--ANCHOR: child-->');
+
+      expect(STRINGIFY(childCursor.elements[0])).toEqual('<span>text</span>');
+    });
+
+    describe('include-next', function() {
+      it('should select multiple items', function() {
+        var dom = $('<span include-next>a</span><span>b</span>')
+        var cursor = new angular.core.dom.NodeCursor(dom);
+
+        expect(cursor.nodeList()).toEqual([dom[0], dom[1]]);
+      });
+    });
+  });
+
   describe('htmlToDOM', function() {
     function expectHtmlCorrect(html) {
       var parts = [];

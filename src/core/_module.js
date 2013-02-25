@@ -42,6 +42,7 @@ angular.core.module = angular.module('core', []).
     curryTypeFactory('$blockListFactory', angular.core.BlockList).
     curryTypeFactory('$blockFactory', angular.core.Block).
     curry('$blockTypeFactory', angular.core.BlockType.factory).
+    service('$compiler', angular.core.Compiler).
     directive('[bind]', angular.core.directive.Bind).
     directive('[repeat]', angular.core.directive.Repeat).
     directive('[click]', angular.core.directive.Click).

@@ -11,6 +11,9 @@ goog.provide('angular.core.NodeList');
  * @interface
  */
 angular.core.DirectiveType = function() {};
+angular.core.DirectiveType.__ASSERT__ = function(directiveType) {
+  return typeof directiveType == 'function';
+};
 
 /**
  * @type {number}
@@ -68,7 +71,7 @@ angular.core.ElementDirectivesDecl;
  * @typedef {Array.<Node>|NodeList}
  */
 angular.core.NodeList = TYPE('angular.core.NodeList', function(value) {
-  return value && typeof value.length == 'number';
+  return value && typeof value == 'object' && typeof value.length == 'number';
 });
 
 /**

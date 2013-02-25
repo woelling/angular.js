@@ -28,7 +28,7 @@ describe('Selector', function() {
 
   it('should match directive on element', function() {
     expect(selector(e('<b></b>'))).toEqual([
-      {selector: 'b', value: undefined, element: element, childNodes: element.childNodes, name: undefined, pseudoElement: undefined}
+      {selector: 'b', value: undefined, element: element, childNodes: element.childNodes, name: undefined}
     ]);
   });
 
@@ -78,20 +78,13 @@ describe('Selector', function() {
 
   it('should match attributes', function() {
     expect(selector(e('<div attr="before-xyz-after"></div>'))).toEqual([
-      {selector: '[*=/xyz/]', value: 'attr=before-xyz-after', element: element, childNodes: element.childNodes, name: 'attr', pseudoElement : undefined}
+      {selector: '[*=/xyz/]', value: 'attr=before-xyz-after', element: element, childNodes: element.childNodes, name: 'attr'}
     ]);
   });
 
   it('should match text', function() {
     expect(selector(e('before-abc-after'))).toEqual([
       {selector: ':contains(/abc/)', value: 'before-abc-after', element: element, childNodes: element.childNodes, name: '#text'}
-    ]);
-  });
-
-  it('should match comment', function() {
-    expect(selector(e('<!--[directive=value]-->text<!--[/directive]-->'))).toEqual([
-      {selector: '[directive]', value: 'value', element: element, childNodes:[ element.nextSibling ], name: 'directive', pseudoElement:true},
-      {selector: '[directive=value]', value: 'value', element: element, childNodes:[ element.nextSibling ], name: 'directive', pseudoElement:true}
     ]);
   });
 

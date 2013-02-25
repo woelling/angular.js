@@ -5,6 +5,159 @@ goog.provide('angular.core.dom.extractTemplate');
 goog.provide('angular.core.dom.htmlToDOM');
 goog.provide('angular.core.dom.select');
 
+angular.core.dom.ELEMENT_NODE = 1;
+ASSERT_EQ(angular.core.dom.ELEMENT_NODE, Node.ELEMENT_NODE);
+
+/**
+ *
+ * @param {angular.core.NodeList} nodeList
+ * @constructor
+ */
+angular.core.dom.NodeCursor = function angular_core_dom_NodeCursor(nodeList) {
+  VAR(nodeList).is(angular.core.NodeList);
+
+  this.stack = [];
+  this.elements = nodeList;
+  this.index = 0;
+};
+
+extend(angular.core.dom.NodeCursor.prototype, /** @lends {angular.core.dom.NodeCursor.prototype} */ {
+  cursorSize: function() {
+    var node = this.elements[this.index];
+
+    return (node.getAttribute && typeof node.getAttribute('include-next') == 'string') ? 2 : 1;
+  },
+
+  macroNext: function() {
+    ASSERT(this.isValid());
+
+    for(var i = 0, ii = this.cursorSize(); i < ii; i++, this.index++){}
+
+    return this.isValid();
+  },
+
+  microNext: function() {
+    var length = this.elements.length;
+    var index = this.index;
+
+    if (index < length) {
+      index = (++this.index);
+    }
+
+    return index < length;
+  },
+
+  isValid: function() {
+    return this.index < this.elements.length;
+  },
+
+  nodeList: function() {
+    ASSERT(this.isValid());
+
+    var node = this.elements[this.index];
+    var nodes = [];
+
+    for(var i = 0, ii = this.cursorSize(); i < ii; i++) {
+      nodes.push(this.elements[this.index + i]);
+    }
+
+    return nodes;
+  },
+
+  descend: function() {
+    ASSERT(this.isValid());
+
+    var childNodes = this.elements[this.index].childNodes;
+    var hasChildren = !!(childNodes && childNodes.length);
+
+    if (hasChildren) {
+      this.stack.push(this.index, this.elements);
+      this.elements = angular.core.dom.NodeCursor.slice.call(childNodes);
+      this.index = 0;
+    }
+
+    return hasChildren;
+  },
+
+  ascend: function() {
+    ASSERT(this.stack.length > 1);
+
+    this.elements = this.stack.pop();
+    this.index = this.stack.pop();
+    ASSERT(this.elements);
+  },
+
+  insertAnchorBefore: function(name) {
+    ASSERT(this.isValid());
+
+    var current = this.elements[this.index];
+    var parent = current.parentNode;
+    var anchor = document.createComment('ANCHOR: ' + name);
+
+    angular.core.dom.NodeCursor.splice.call(this.elements, this.index, 0, anchor);
+    this.index++;
+
+    if (parent) {
+      parent.insertBefore(anchor, current);
+    }
+  },
+
+  replaceWithAnchor: function(name) {
+    this.insertAnchorBefore(name);
+    var childCursor = this.remove();
+
+    this.index--;
+    return childCursor
+  },
+
+  remove: function() {
+    ASSERT(this.isValid());
+
+    var nodes = this.nodeList();
+    var parent = nodes[0].parentNode;
+
+    angular.core.dom.NodeCursor.splice.call(this.elements, this.index, nodes.length);
+    if (parent) {
+      for (var i = 0, ii = nodes.length; i < ii; i++) {
+        parent.removeChild(nodes[i]);
+      }
+    }
+    return new angular.core.dom.NodeCursor(nodes);
+  },
+
+  isInstance: function() {
+    ASSERT(this.isValid());
+
+    var node = this.elements[this.index];
+
+    return node && node.getAttribute && node.getAttribute('instance') ? true : false;
+  }
+});
+
+angular.core.dom.NodeCursor.splice = Array.prototype.splice;
+angular.core.dom.NodeCursor.slice = Array.prototype.slice;
+angular.core.dom.NodeCursor.STRINGIFY = function(cursor) {
+  var parts = [];
+  var nodes = cursor.elements;
+  var span = cursor.isValid() ? cursor.nodeList().length - 1 : 0;
+
+  for (var i = 0, ii = nodes.length; i < ii; i++) {
+    if (i == cursor.index) {
+      parts.push('[[');
+    }
+    parts.push(STRINGIFY(nodes[i]));
+    if (i == cursor.index + span) {
+      parts.push(']]');
+    }
+  }
+  if (!cursor.isValid()) {
+    parts.push('[[EOF]]');
+  }
+
+  return parts.join('');
+};
+
+
 /**
  *
  * @param {angular.core.NodeList} elements
@@ -24,49 +177,46 @@ angular.core.dom.clone = function (elements) {
   return cloneElements;
 }
 
-/**
- * @param {angular.core.NodeList} templateElement
- * @param {Array.<angular.core.NodeDirectiveDef>} nodeDirectiveDefs
- * @return {angular.core.NodeList}
- */
-angular.core.dom.extractTemplate = function (templateElement, nodeDirectiveDefs) {
-  VERIFY(arguments,
-    ARG('templateElement').is(angular.core.NodeList),
-    ARG('nodeDirectiveDefs').is(ARRAY(angular.core.NodeDirectiveDef)));
+angular.core.dom.insertAnchorBefore = function (element, anchorName) {
+  VAR(element).is(Element);
+  VAR(anchorName).is(String);
 
-  /** @type {angular.core.NodeList} */
-  var clonedElements = angular.core.dom.clone(templateElement);
+  element.parentNode.insertBefore(document.createComment(anchorName), element);
+};
 
-  // remove the hole contents
-  for(var i = 0, ii = nodeDirectiveDefs.length; i < ii; i++) {
-    /** @type {angular.core.NodeDirectiveDef} */
-    var nodeDirectiveDef = nodeDirectiveDefs[i];
+angular.core.dom.toNodeList = function (element) {
+  VAR(element).is(Element);
 
-    VAR(nodeDirectiveDef).is(angular.core.NodeDirectiveDef);
-    for (var directiveDefs = nodeDirectiveDef.directiveDefs,
-         j = 0, jj = directiveDefs.length; j < jj; j++) {
-      /** @type {angular.core.DirectiveDef} */
-      var directiveDef = directiveDefs[j];
+  var nodeList = [element];
 
-      VAR(directiveDef).is(angular.core.DirectiveDef);
-      if (directiveDef.isComponent()) {
-        /** @type {angular.core.NodeList} */
-        var holeElements = angular.core.dom.select(clonedElements, nodeDirectiveDef.selector);
-        /** @type {Element} */
-        var parentNode = holeElements[0].parentNode;
+  while (isString(element.getAttribute('include-next')) && (element = element.nextSibling)) {
+    nodeList.push(element)
+  }
+  return nodeList;
+};
 
-        // assume first element is anchor and remove the rest
-        for(var j = 1, jj = holeElements.length; j < jj; j++) {
-          parentNode.removeChild(holeElements[j]);
-        }
-        // strip span from hole selectors
-        nodeDirectiveDef.stripSpan();
-      }
-    }
+angular.core.dom.nextSiblingNode = function (nodes) {
+  VAR(nodes).is(angular.core.NodeList);
+
+  var element = nodes[nodes.length-1].nextSibling;
+
+  while(element && element.nodeType != angular.core.dom.ELEMENT_NODE) {
+    element = element.nextSibling;
   }
 
-  return clonedElements;
-}
+  return element;
+};
+
+angular.core.dom.remove = function (nodes) {
+  VAR(nodes).is(angular.core.NodeList);
+
+  var parent = nodes[0].parentNode;
+  ASSERT(parent, STRINGIFY(nodes));
+
+  for (var i = 0, ii = nodes.length; i < ii; i++) {
+    parent.removeChild(nodes[i]);
+  }
+};
 
 
 /**

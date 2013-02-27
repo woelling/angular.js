@@ -381,7 +381,8 @@ angular.core.LocationUrl.prototype = {
         this.$$search[search] = paramValue;
       }
     } else {
-      this.$$search = isString(search) ? parseKeyValue(search) : search;
+      this.$$search = isString(search) ?
+          parseKeyValue(/** @type{string} */ (search)) : search;
     }
 
     this.$$compose();

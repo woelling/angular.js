@@ -688,7 +688,7 @@ function $CompileProvider($provide) {
                     newTemplateAttrs
                 )
             );
-            mergeTemplateAttributes(templateAttrs, newTemplateAttrs);
+            mergeTemplateAttributes(templateAttrs, newTemplateAttrs, directiveName);
 
             ii = directives.length;
           } else {
@@ -700,8 +700,8 @@ function $CompileProvider($provide) {
           assertNoDuplicate('template', templateDirective, directive, $compileNode);
           templateDirective = directive;
           nodeLinkFn = compileTemplateUrl(directives.splice(i, directives.length - i),
-              nodeLinkFn, $compileNode, templateAttrs, $rootElement, directive.replace,
-              childTranscludeFn);
+              nodeLinkFn, $compileNode, templateAttrs, $rootElement,
+              directive.replace ? directiveName : null, childTranscludeFn);
           ii = directives.length;
         } else if (directive.compile) {
           try {
@@ -941,15 +941,18 @@ function $CompileProvider($provide) {
      *
      * @param {object} dst destination attributes (original DOM)
      * @param {object} src source attributes (from the directive template)
+     * @param {string} skipAttr attribute which should not be copied.
+     *    (the attribute is the directive which triggered the this and we don't
+     *     want to get to infinite loop.)
      */
-    function mergeTemplateAttributes(dst, src) {
+    function mergeTemplateAttributes(dst, src, skipAttr) {
       var srcAttr = src.$attr,
           dstAttr = dst.$attr,
           $element = dst.$$element;
 
       // reapply the old attributes to the new element
       forEach(dst, function(value, key) {
-        if (key.charAt(0) != '$') {
+        if (key.charAt(0) != '$' && key != skipAttr) {
           if (src[key]) {
             value += (key === 'style' ? ';' : ' ') + src[key];
           }
@@ -1006,15 +1009,16 @@ function $CompileProvider($provide) {
             tempTemplateAttrs = {$attr: {}};
             replaceWith($rootElement, $compileNode, compileNode);
             collectDirectives(compileNode, directives, tempTemplateAttrs);
-            mergeTemplateAttributes(tAttrs, tempTemplateAttrs);
+            mergeTemplateAttributes(tAttrs, tempTemplateAttrs, replace);
           } else {
             compileNode = beforeTemplateCompileNode;
             $compileNode.html(content);
           }
 
           directives.unshift(derivedSyncDirective);
-          afterTemplateNodeLinkFn = applyDirectivesToNode(directives, compileNode, tAttrs, childTranscludeFn);
+          afterTemplateNodeLinkFn = applyDirectivesToNode(directives, compileNode, tAttrs, childTranscludeFn, $compileNode);
           afterTemplateChildLinkFn = compileNodes($compileNode[0].childNodes, childTranscludeFn);
+          compileNode = $compileNode[0]; // we may have gotten transcluded
 
 
           while(linkQueue.length) {

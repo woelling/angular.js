@@ -1,0 +1,114 @@
+<!DOCTYPE html> 
+<html ng-app="Animator" ng-controller="AppCtrl">
+  <head>
+    <title>AngularJS Animation Demo</title>
+<script type="text/ng-template" id="tpl1">
+  <div class="slide">
+    <p>
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit. In malesuada risus eu magna posuere eu laoreet odio ornare. Proin malesuada gravida magna at lacinia. Donec metus erat, rutrum sit amet faucibus quis, mattis at sem. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aenean feugiat nibh in quam facilisis a rutrum risus malesuada. Fusce libero libero, scelerisque eget luctus a, blandit vel nisi. Proin elit nisi, adipiscing nec congue et, ornare vel enim. Nam orci dui, volutpat vitae fringilla vitae, scelerisque ut neque. Etiam libero orci, consequat ac porttitor a, feugiat nec orci. Nullam volutpat rhoncus dolor sed pellentesque. Etiam ornare, enim molestie semper imperdiet, urna ligula porta massa, in tempor diam quam ut velit. Ut sit amet nulla sem, pellentesque bibendum elit. Sed lectus libero, iaculis a vestibulum at, laoreet tempor orci. Praesent scelerisque urna et velit eleifend viverra.
+    </p>
+  </div>
+</script>
+<script type="text/ng-template" id="tpl2">
+  <div class="slide">
+    <img src="http://angularjs.org/img/AngularJS-large.png" />
+  </div>
+</script>
+<script type="text/ng-template" id="tpl3">
+  <div class="slide">
+    slide 3
+  </div>
+</script>
+    <style>
+      .fade-enter-setup {
+        position: absolute;
+        -webkit-transition:0.5s linear all;
+        -moz-transition:0.5s linear all;
+        -ms-transition:0.5s linear all;
+        -o-transition:0.5s linear all;
+        transition:0.5s linear all;
+        opacity:0;
+        top:-100%;
+      }
+      .fade-enter-setup.fade-enter-start {
+        top:0;
+        opacity:1;
+      }
+      .fade-leave-setup {
+        top:0;
+        position: absolute;
+        -webkit-transition:0.5s linear all;
+        -moz-transition:0.5s linear all;
+        -ms-transition:0.5s linear all;
+        -o-transition:0.5s linear all;
+        transition:0.5s linear all;
+        opacity:1;
+      }
+      .fade-leave-setup.fade-leave-start {
+        top:-100%;
+        opacity:0;
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav>
+      <a ng-click="section=1" href="">Fade Events</a>
+      <a ng-click="section=2" href="">Slide Events</a>
+    </nav>
+
+    <main ng-switch="section" ng-init="section=1" ng-animate="fade">
+      <section ng-init="in1='tpl1'" ng-switch-when="1">
+        <header>
+          <h1>
+            CSS3 Animation
+            <span>
+              <strong>enter:</strong>
+              <em>fadeEnter</em>
+            </span>
+            <span>
+              <strong>leave:</strong>
+              <em>fadeLeave</em>
+            </span>
+          </h3>
+        </header>
+        <div>
+          <nav>
+            <a ng-click="in1='tpl1'" href="#">Page 1</a>
+            <a ng-click="in1='tpl2'" href="#">Page 2</a>
+            <a ng-click="in1='tpl3'" href="#">Page 3</a>
+          </nav>
+          <div class="include" ng-include="in1" ng-animate="fade"></div>
+        </div>
+      </section>
+
+      <section ng-init="in2='tpl1'" ng-switch-when="2">
+        <header>
+          <h1>
+            Polyfill Animation
+            <span>
+              <strong>enter:</strong>
+              <em>fadeEnterCb</em>
+            </span>
+            <span>
+              <strong>leave:</strong>
+              <em>fadeLeaveCb</em>
+            </span>
+          </h3>
+        </header>
+        <div>
+          <nav>
+            <a ng-click="in2='tpl1'" href="#">Page 1</a>
+            <a ng-click="in2='tpl2'" href="#">Page 2</a>
+            <a ng-click="in2='tpl3'" href="#">Page 3</a>
+          </nav>
+          <div class="include" ng-include="in2" ng-animate="enter: fade-enter-cb; leave: fade-leave-cb;"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="../../../build/angular.js"></script>
+    <script src="./module.js"></script>
+  <body>
+</html>

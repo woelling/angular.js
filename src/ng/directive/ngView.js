@@ -105,15 +105,16 @@
  * Emitted every time the ngView content is reloaded.
  */
 var ngViewDirective = ['$http', '$templateCache', '$route', '$anchorScroll', '$compile',
-                       '$controller',
+                       '$controller', '$animator',
                function($http,   $templateCache,   $route,   $anchorScroll,   $compile,
-                        $controller) {
+                        $controller,  $animator) {
   return {
     restrict: 'ECA',
     terminal: true,
     link: function(scope, element, attr) {
       var lastScope,
-          onloadExp = attr.onload || '';
+          onloadExp = attr.onload || '',
+          animate = $animator(attr);
 
       scope.$on('$routeChangeSuccess', update);
       update();
@@ -127,7 +128,7 @@ var ngViewDirective = ['$http', '$templateCache', '$route', '$anchorScroll', '$c
       }
 
       function clearContent() {
-        element.html('');
+        animate.leave(element.contents(), element);
         destroyLastScope();
       }
 
@@ -136,8 +137,8 @@ var ngViewDirective = ['$http', '$templateCache', '$route', '$anchorScroll', '$c
             template = locals && locals.$template;
 
         if (template) {
-          element.html(template);
-          destroyLastScope();
+          clearContent();
+          animate.enter(jqLite('<div></div>').html(template).contents(), element);
 
           var link = $compile(element.contents()),
               current = $route.current,

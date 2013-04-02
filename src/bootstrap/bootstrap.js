@@ -52,6 +52,7 @@ directive.dropdownToggle =
 directive.tabbable = function() {
   return {
     restrict: 'C',
+    scope : true, //we want our own scope for animation controls
     compile: function(element) {
       var navTabs = angular.element('<ul class="nav nav-tabs"></ul>'),
           tabContent = angular.element('<div class="tab-content"></div>');

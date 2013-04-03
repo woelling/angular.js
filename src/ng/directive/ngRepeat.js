@@ -79,9 +79,7 @@
         <input type="search" ng-model="q" placeholder="filter friends..." />
         <ul>
           <li ng-repeat="friend in friends | filter:q"
-              ng-animate="{enter: 'example-repeat-enter',
-                          leave: 'example-repeat-leave',
-                          move: 'example-repeat-move'}">
+              ng-animate=" 'example-repeat' ">
             [{{$index + 1}}] {{friend.name}} who is {{friend.age}} years old.
           </li>
         </ul>
@@ -91,29 +89,35 @@
       .example-repeat-enter-setup,
       .example-repeat-leave-setup,
       .example-repeat-move-setup {
-        -webkit-transition:all linear 0.5s;
-        -moz-transition:all linear 0.5s;
-        -ms-transition:all linear 0.5s;
-        -o-transition:all linear 0.5s;
-        transition:all linear 0.5s;
+        -webkit-transition:all linear 0.3s;
+        -moz-transition:all linear 0.3s;
+        -ms-transition:all linear 0.3s;
+        -o-transition:all linear 0.3s;
+        transition:all linear 0.3s;
       }
 
       .example-repeat-enter-setup {
+        position: relative;
+        left: 50%;
         line-height:0;
         opacity:0;
       }
       .example-repeat-enter-setup.example-repeat-enter-start {
-        line-height:20px;
+        line-height:100%;
+        left: 0;
         opacity:1;
       }
 
       .example-repeat-leave-setup {
-        opacity:1;
-        line-height:20px;
+        position: relative;
+        left: 0;
+        line-height: 100%;
+        opacity: 0;
       }
       .example-repeat-leave-setup.example-repeat-leave-start {
-        opacity:0;
-        line-height:0;
+        left: 50%;
+        opacity: 0;
+        line-height: 0;
       }
 
       .example-repeat-move-setup { }

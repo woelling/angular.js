@@ -34,7 +34,7 @@
           <div
             ng-view
             class="example-animate-container"
-            ng-animate="{enter: 'example-enter', leave: 'example-leave'}"></div>
+            ng-animate=" 'example' "></div>
           <hr />
 
           <pre>$location.path() = {{$location.path()}}</pre>

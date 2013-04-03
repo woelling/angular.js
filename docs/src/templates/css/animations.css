@@ -1,9 +1,9 @@
 .reveal-setup {
-  -webkit-transition:1s linear all;
-  -moz-transition:1s linear all;
-  -ms-transition:1s linear all;
-  -o-transition:1s linear all;
-  transition:1s linear all;
+  -webkit-transition:0.3s ease-in all;
+  -moz-transition:0.3s ease-in all;
+  -ms-transition:0.3s ease-in all;
+  -o-transition:0.3s ease-in all;
+  transition:0.3s ease-in all;
 
   opacity:0;
 }
@@ -12,11 +12,11 @@
 }
 
 .slide-reveal-setup {
-  -webkit-transition:0.5s linear all;
-  -moz-transition:0.5s linear all;
-  -ms-transition:0.5s linear all;
-  -o-transition:0.5s linear all;
-  transition:0.5s linear all;
+  -webkit-transition:0.3s ease-in all;
+  -moz-transition:0.3s ease-in all;
+  -ms-transition:0.3s ease-in all;
+  -o-transition:0.3s ease-in all;
+  transition:0.3s ease-in all;
   opacity:0.5;
 }
 .slide-reveal-setup.slide-reveal-start {
@@ -24,32 +24,37 @@
 }
 
 .slide-enter-setup {
-  -webkit-transition:0.5s linear all;
-  -moz-transition:0.5s linear all;
-  -ms-transition:0.5s linear all;
-  -o-transition:0.5s linear all;
-  transition:0.5s linear all;
+  -webkit-transition:0.3s ease-out all;
+  -moz-transition:0.3s ease-out all;
+  -ms-transition:0.3s ease-out all;
+  -o-transition:0.3s ease-out all;
+  transition:0.3s ease-out all;
+}
 
+.slide-enter-setup {
   position:relative;
-  left:10px;
   opacity:0;
+  line-height: 0  !important;
 }
 .slide-enter-setup.slide-enter-start {
-  left:0;
-  opacity:1;
+  opacity: 1;
+  line-height: 100% !important;
 }
 
 .slide-leave-setup {
-  -webkit-transition:0.5s linear all;
-  -moz-transition:0.5s linear all;
-  -ms-transition:0.5s linear all;
-  -o-transition:0.5s linear all;
-  transition:0.5s linear all;
+  -webkit-transition:0.3s ease-in all;
+  -moz-transition:0.3s ease-in all;
+  -ms-transition:0.3s ease-in all;
+  -o-transition:0.3s ease-in all;
+  transition:0.3s ease-in all;
 
+  position: relative;
   opacity:1;
+  line-height: 100% !important;
 }
 .slide-leave-setup.slide-leave-start {
   opacity:0;
+  line-height: 0 !important;
 }
 
 .example-animate-container {

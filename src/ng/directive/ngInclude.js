@@ -43,7 +43,7 @@
        <hr/>
        <div class="example-animate-container"
             ng-include="template.url"
-            ng-animate="{enter: 'example-enter', leave: 'example-leave'}"></div>
+            ng-animate=" 'example' "></div>
      </div>
     </file>
     <file name="script.js">
